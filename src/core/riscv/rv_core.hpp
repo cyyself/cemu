@@ -1,4 +1,6 @@
-#include "rv_core.hpp"
+#include <core.hpp>
+#include <memory.hpp>
+#include <bitset>
 #include "rv_instr.hpp"
 #include <assert.h>
 
@@ -12,8 +14,9 @@ enum mem_err_code {
 
 class rv_core : public core {
 public:
-    rv_core(memory &mem, memory &mmio, std::bitset<4> &irq):mem(mem),mmio(mmio),irq(irq)
-        {}
+    rv_core(memory &mem, memory &mmio, std::bitset<4> &irq):mem(mem),mmio(mmio),irq(irq) {
+        GPR[0] = 0;
+    }
     void step() {
         exec();
     }
@@ -21,7 +24,7 @@ private:
     memory &mem;
     memory &mmio;
     std::bitset<4> &irq;
-    uint64_t pc;
+    uint64_t pc = 0;
     int64_t GPR[32];
     void exec() {
     instr_fetch:
@@ -34,56 +37,56 @@ private:
         bool new_pc = false;
         switch (inst->r_type.opcode) {
             case OPCODE_LUI:
-                if (inst->u_type.rd) GPR[inst->u_type.rd] = ((int64_t)inst->u_type.imm_31_12) << 12;
+                set_GPR(inst->u_type.rd,((int64_t)inst->u_type.imm_31_12) << 12);
                 break;
             case OPCODE_AUIPC:
-                if (inst->u_type.rd) GPR[inst->u_type.rd] = (((int64_t)inst->u_type.imm_31_12) << 12) + pc;
+                set_GPR(inst->u_type.rd,(((int64_t)inst->u_type.imm_31_12) << 12) + pc);
                 break;
             case OPCODE_JAL:
-                if (inst->j_type.rd) GPR[inst->j_type.rd] = pc + 4;
+                set_GPR(inst->j_type.rd,pc + 4);
                 pc += (inst->j_type.imm_20 << 20) | (inst->j_type.imm_19_12 << 12) | (inst->j_type.imm_11 << 11) | (inst->j_type.imm_10_1 << 1);
                 new_pc = true;
                 break;
             case OPCODE_JALR:
-                if (inst->i_type.rd) GPR[inst->j_type.rd] = pc + 4;
+                set_GPR(inst->j_type.rd,pc + 4);
                 pc =  GPR[inst->i_type.rs1] + GPR[inst->i_type.imm12];
                 new_pc = true;
                 break;
-            case OPCODE_BRANCH:
+            case OPCODE_BRANCH: {
                 int64_t offset = (inst->b_type.imm_12 << 12) | (inst->b_type.imm_11 << 11) | (inst->b_type.imm_10_5 << 5) | (inst->b_type.imm_4_1 << 1);
                 switch (inst->b_type.funct3) {
                     case FUNCT3_BEQ:
-                        if (GPR[inst->b_type.rs1] == GPR[inst->b_type.rs1]) {
+                        if (GPR[inst->b_type.rs1] == GPR[inst->b_type.rs2]) {
                             pc += offset;
                             new_pc = true;
                         }
                         break;
                     case FUNCT3_BNE:
-                        if (GPR[inst->b_type.rs1] != GPR[inst->b_type.rs1]) {
+                        if (GPR[inst->b_type.rs1] != GPR[inst->b_type.rs2]) {
                             pc += offset;
                             new_pc = true;
                         }
                         break;
                     case FUNCT3_BLT:
-                        if (GPR[inst->b_type.rs1] < GPR[inst->b_type.rs1]) {
+                        if (GPR[inst->b_type.rs1] < GPR[inst->b_type.rs2]) {
                             pc += offset;
                             new_pc = true;
                         }
                         break;
                     case FUNCT3_BGE:
-                        if (GPR[inst->b_type.rs1] >= GPR[inst->b_type.rs1]) {
+                        if (GPR[inst->b_type.rs1] >= GPR[inst->b_type.rs2]) {
                             pc += offset;
                             new_pc = true;
                         }
                         break;
                     case FUNCT3_BLTU:
-                        if ((uint64_t)GPR[inst->b_type.rs1] < (uint64_t)GPR[inst->b_type.rs1]) {
+                        if ((uint64_t)GPR[inst->b_type.rs1] < (uint64_t)GPR[inst->b_type.rs2]) {
                             pc += offset;
                             new_pc = true;
                         }
                         break;
                     case FUNCT3_BGEU:
-                        if ((uint64_t)GPR[inst->b_type.rs1] >= (uint64_t)GPR[inst->b_type.rs1]) {
+                        if ((uint64_t)GPR[inst->b_type.rs1] >= (uint64_t)GPR[inst->b_type.rs2]) {
                             pc += offset;
                             new_pc = true;
                         }
@@ -92,49 +95,50 @@ private:
                         ri = true;
                 }
                 break;
+            }
             case OPCODE_LOAD: {
                 uint64_t mem_addr = GPR[inst->i_type.rs1] + (inst->i_type.imm12);
                 switch (inst->i_type.funct3) {
                     case FUNCT3_LB: {
                         int8_t buf;
                         mem_read(mem_addr,1,(unsigned char*)&buf);
-                        if (inst->i_type.rd) GPR[inst->i_type.rd] = buf;
+                        set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LH: {
                         int16_t buf;
                         mem_read(mem_addr,2,(unsigned char*)&buf);
-                        if (inst->i_type.rd) GPR[inst->i_type.rd] = buf;
+                        set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LW: {
                         int32_t buf;
                         mem_read(mem_addr,4,(unsigned char*)&buf);
-                        if (inst->i_type.rd) GPR[inst->i_type.rd] = buf;
+                        set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LD: {
                         int64_t buf;
                         mem_read(mem_addr,8,(unsigned char*)&buf);
-                        if (inst->i_type.rd) GPR[inst->i_type.rd] = buf;
+                        set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LBU: {
                         uint8_t buf;
                         mem_read(mem_addr,1,(unsigned char*)&buf);
-                        if (inst->i_type.rd) GPR[inst->i_type.rd] = buf;
+                        set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LHU: {
                         uint16_t buf;
                         mem_read(mem_addr,2,(unsigned char*)&buf);
-                        if (inst->i_type.rd) GPR[inst->i_type.rd] = buf;
+                        set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LWU: {
                         uint32_t buf;
                         mem_read(mem_addr,4,(unsigned char*)&buf);
-                        if (inst->i_type.rd) GPR[inst->i_type.rd] = buf;
+                        set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     default:
@@ -168,36 +172,40 @@ private:
             }
             case OPCODE_OPIMM: {
                 int64_t imm = inst->i_type.imm12;
-                unsigned int funct6 = ((unsigned long)imm << 58) >> 58;
+                funct6 fun6 = static_cast<funct6>((inst->r_type.funct7) >> 1);
+                bool funct7_m_2 = false;
                 switch (inst->i_type.funct3) {
                     case FUNCT3_SRL_SRA:
-                        if (funct6 != (1 << 10) && funct6 != 0) ri = true;
+                        if (fun6 == FUNCT6_SRA) funct7_m_2 = true;
+                        else if (fun6 != FUNCT6_NORMAL) ri = true;
                         break;
                     case FUNCT3_SLL:
-                        if (funct6 != 0) ri = true;
+                        if (fun6 != FUNCT6_NORMAL) ri = true;
                         break;
                     default:
                         break;
                 }
-                if (!ri) GPR[inst->i_type.rd] = alu_exec(GPR[inst->i_type.rs1],imm,static_cast<funct3_op>(inst->i_type.funct3),funct6 != 0);
+                if (!ri) set_GPR(inst->i_type.rd,alu_exec(GPR[inst->i_type.rs1],imm,static_cast<funct3_op>(inst->i_type.funct3),funct7_m_2));
                 break;
             }
             case OPCODE_OPIMM32: {
                 int64_t imm = inst->i_type.imm12;
-                unsigned int funct6 = ((unsigned long)imm << 57) >> 57;
+                bool funct7_m_2 = false;
+                funct6 fun6 = static_cast<funct6>((inst->r_type.funct7) >> 1);
                 switch (inst->i_type.funct3) {
                     case FUNCT3_SRL_SRA:
-                        if (funct6 != FUNCT6_NORMAL && funct6 != FUNCT6_SRA) ri = true;
+                        if (fun6 == FUNCT6_SRA) funct7_m_2 = true;
+                        else if (fun6 != FUNCT6_NORMAL) ri = true;
                         break;
                     case FUNCT3_SLL:
-                        if (funct6 != 0) ri = true;
+                        if (fun6 != FUNCT6_NORMAL) ri = true;
                         break;
                     case FUNCT3_ADD_SUB:
                         break;
                     default:
                         ri = true;
                 }
-                if (!ri) GPR[inst->i_type.rd] = alu_exec(GPR[inst->i_type.rs1],imm,static_cast<funct3_op>(inst->i_type.funct3),funct6 != 0,true);
+                if (!ri) set_GPR(inst->i_type.rd,alu_exec(GPR[inst->i_type.rs1],imm,static_cast<funct3_op>(inst->i_type.funct3),funct7_m_2,true));
                 break;
             }
             case OPCODE_OP: {
@@ -211,7 +219,7 @@ private:
                     default:
                         if (inst->r_type.funct7 != FUNCT7_NORMAL) ri = true;
                 }
-                if (!ri) GPR[inst->r_type.rd] = alu_exec(GPR[inst->r_type.rs1],GPR[inst->r_type.rs2],static_cast<funct3_op>(inst->r_type.funct3),inst->r_type.funct7 != 0);
+                if (!ri) set_GPR(inst->r_type.rd,alu_exec(GPR[inst->r_type.rs1],GPR[inst->r_type.rs2],static_cast<funct3_op>(inst->r_type.funct3),inst->r_type.funct7 != 0));
                 break;
             }
             case OPCODE_OP32: {
@@ -228,7 +236,7 @@ private:
                     default:
                         ri = true;
                 }
-                if (!ri) GPR[inst->r_type.rd] = alu_exec(GPR[inst->r_type.rs1],GPR[inst->r_type.rs2],static_cast<funct3_op>(inst->r_type.funct3),inst->r_type.funct7 != 0);
+                if (!ri) set_GPR(inst->r_type.rd,alu_exec(GPR[inst->r_type.rs1],GPR[inst->r_type.rs2],static_cast<funct3_op>(inst->r_type.funct3),inst->r_type.funct7 != 0));
                 break;
             }
             case OPCODE_FENCE:
@@ -240,24 +248,29 @@ private:
                 break;
         }
         if (!new_pc) pc = pc + 4;
+        assert(!ri);
     }
     mem_err_code mem_read(unsigned long start_addr, unsigned long size, unsigned char* buffer) {
-        if (start_addr & 0xffffffffe0000000lu == 0x60000000) {
-            bool stat = mmio.do_read(start_addr,size,buffer);
+        if (start_addr & 0xffffffff80000000lu == 0x80000000) {
+            bool stat = mem.do_read(start_addr,size,buffer);
+            assert(stat);
             return stat ? MEM_OK : MEM_ERR_LOAD_ACCESS_FAULT;
         }
         else {
-            bool stat = mem.do_read(start_addr,size,buffer);
+            bool stat = mmio.do_read(start_addr,size,buffer);
+            assert(stat);
             return stat ? MEM_OK : MEM_ERR_LOAD_ACCESS_FAULT;
         }
     }
     mem_err_code mem_write(unsigned long start_addr, unsigned long size, const unsigned char* buffer) {
-        if (start_addr & 0xffffffffe0000000lu == 0x60000000) {
-            bool stat = mmio.do_write(start_addr,size,buffer);
+        if (start_addr & 0xffffffff80000000lu == 0x80000000) {
+            bool stat = mem.do_write(start_addr,size,buffer);
+            assert(stat);
             return stat ? MEM_OK : MEM_ERR_STORE_ACCESS_FAULT;
         }
         else {
-            bool stat = mem.do_write(start_addr,size,buffer);
+            bool stat = mmio.do_write(start_addr,size,buffer);
+            assert(stat);
             return stat ? MEM_OK : MEM_ERR_STORE_ACCESS_FAULT;
         }
     }
@@ -286,5 +299,8 @@ private:
             default:
                 return 0;
         }
+    }
+    void set_GPR(unsigned int GPR_index, long value) {
+        if (GPR_index) GPR[GPR_index] = value;
     }
 };
