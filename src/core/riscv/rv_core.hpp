@@ -2,10 +2,10 @@
 #define RV_CORE_HPP
 
 #include <core.hpp>
-#include <memory.hpp>
 #include <bitset>
 #include "rv_common.hpp"
 #include <assert.h>
+#include "rv_systembus.hpp"
 
 enum mem_err_code {
     MEM_OK = 0,
@@ -23,16 +23,14 @@ enum alu_op {
 
 class rv_core : public core {
 public:
-    rv_core(memory &mem, memory &mmio, std::bitset<4> &irq):mem(mem),mmio(mmio),irq(irq) {
+    rv_core(rv_systembus &systembus):systembus(systembus) {
         GPR[0] = 0;
     }
     void step() {
         exec();
     }
 private:
-    memory &mem;
-    memory &mmio;
-    std::bitset<4> &irq;
+    rv_systembus &systembus;
     uint64_t pc = 0;
     int64_t GPR[32];
     void exec() {
@@ -411,28 +409,14 @@ private:
         assert(!ri);
     }
     mem_err_code mem_read(unsigned long start_addr, unsigned long size, unsigned char* buffer) {
-        if (start_addr & 0xffffffff80000000lu == 0x80000000) {
-            bool stat = mem.do_read(start_addr,size,buffer);
-            assert(stat);
-            return stat ? MEM_OK : MEM_ERR_LOAD_ACCESS_FAULT;
-        }
-        else {
-            bool stat = mmio.do_read(start_addr,size,buffer);
-            assert(stat);
-            return stat ? MEM_OK : MEM_ERR_LOAD_ACCESS_FAULT;
-        }
+        bool stat = systembus.pa_read(start_addr,size,buffer);
+        assert(stat);
+        return stat ? MEM_OK : MEM_ERR_LOAD_ACCESS_FAULT;
     }
     mem_err_code mem_write(unsigned long start_addr, unsigned long size, const unsigned char* buffer) {
-        if (start_addr & 0xffffffff80000000lu == 0x80000000) {
-            bool stat = mem.do_write(start_addr,size,buffer);
-            assert(stat);
-            return stat ? MEM_OK : MEM_ERR_STORE_ACCESS_FAULT;
-        }
-        else {
-            bool stat = mmio.do_write(start_addr,size,buffer);
-            assert(stat);
-            return stat ? MEM_OK : MEM_ERR_STORE_ACCESS_FAULT;
-        }
+        bool stat = systembus.pa_write(start_addr,size,buffer);
+        assert(stat);
+        return stat ? MEM_OK : MEM_ERR_STORE_ACCESS_FAULT;
     }
     int64_t alu_exec(int64_t a, int64_t b, alu_op op, bool op_32 = false) {
         if (op_32) {
