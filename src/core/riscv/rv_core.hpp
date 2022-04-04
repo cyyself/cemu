@@ -1,7 +1,10 @@
+#ifndef RV_CORE_HPP
+#define RV_CORE_HPP
+
 #include <core.hpp>
 #include <memory.hpp>
 #include <bitset>
-#include "rv_instr.hpp"
+#include "rv_common.hpp"
 #include <assert.h>
 
 enum mem_err_code {
@@ -10,6 +13,12 @@ enum mem_err_code {
     MEM_ERR_STORE_ACCESS_FAULT  = 7,
     MEM_ERR_LOAD_PGFAULT        = 13,
     MEM_ERR_STORE_PGFAULT       = 15,
+};
+
+enum alu_op {
+    ALU_ADD, ALU_SUB, ALU_SLL, ALU_SLT, ALU_SLTU, ALU_XOR, ALU_SRL, ALU_SRA, ALU_OR, ALU_AND,
+    ALU_MUL, ALU_MULH, ALU_MULHU, ALU_MULHSU, ALU_DIV, ALU_DIVU, ALU_REM, ALU_REMU,
+    ALU_NOP
 };
 
 class rv_core : public core {
@@ -173,80 +182,231 @@ private:
             case OPCODE_OPIMM: {
                 int64_t imm = inst->i_type.imm12;
                 funct6 fun6 = static_cast<funct6>((inst->r_type.funct7) >> 1);
-                bool funct7_m_2 = false;
+                alu_op op;
                 switch (inst->i_type.funct3) {
-                    case FUNCT3_SRL_SRA:
-                        if (fun6 == FUNCT6_SRA) funct7_m_2 = true;
-                        else if (fun6 != FUNCT6_NORMAL) ri = true;
+                    case FUNCT3_ADD_SUB:
+                        op = ALU_ADD;
+                        break;
+                    case FUNCT3_SLT:
+                        op = ALU_SLT;
+                        break;
+                    case FUNCT3_SLTU:
+                        op = ALU_SLTU;
+                        break;
+                    case FUNCT3_XOR:
+                        op = ALU_XOR;
+                        break;
+                    case FUNCT3_OR:
+                        op = ALU_OR;
+                        break;
+                    case FUNCT3_AND:
+                        op = ALU_AND;
                         break;
                     case FUNCT3_SLL:
-                        if (fun6 != FUNCT6_NORMAL) ri = true;
+                        if (imm >= 64) ri = true;
+                        op = ALU_SLL;
+                        break;
+                    case FUNCT3_SRL_SRA: 
+                        imm = imm & ((1 << 6) - 1);
+                        op = ALU_SRL;
+                        if (fun6 != FUNCT6_NORMAL && fun6 != FUNCT6_SRA) ri = true;
                         break;
                     default:
-                        break;
+                        assert(false);
                 }
-                if (!ri) set_GPR(inst->i_type.rd,alu_exec(GPR[inst->i_type.rs1],imm,static_cast<funct3_op>(inst->i_type.funct3),funct7_m_2));
+                if (!ri) {
+                    int64_t result = alu_exec(GPR[inst->r_type.rs1],imm,op);
+                    set_GPR(inst->r_type.rd,result);
+                }
                 break;
             }
             case OPCODE_OPIMM32: {
                 int64_t imm = inst->i_type.imm12;
-                bool funct7_m_2 = false;
                 funct6 fun6 = static_cast<funct6>((inst->r_type.funct7) >> 1);
+                alu_op op;
                 switch (inst->i_type.funct3) {
-                    case FUNCT3_SRL_SRA:
-                        if (fun6 == FUNCT6_SRA) funct7_m_2 = true;
-                        else if (fun6 != FUNCT6_NORMAL) ri = true;
+                    case FUNCT3_ADD_SUB:
+                        op = ALU_ADD;
                         break;
                     case FUNCT3_SLL:
-                        if (fun6 != FUNCT6_NORMAL) ri = true;
+                        if (imm >= 64) ri = true;
+                        op = ALU_SLL;
                         break;
-                    case FUNCT3_ADD_SUB:
+                    case FUNCT3_SRL_SRA: 
+                        imm = imm & ((1 << 6) - 1);
+                        op = ALU_SRL;
+                        if (fun6 != FUNCT6_NORMAL && fun6 != FUNCT6_SRA) ri = true;
                         break;
                     default:
                         ri = true;
                 }
-                if (!ri) set_GPR(inst->i_type.rd,alu_exec(GPR[inst->i_type.rs1],imm,static_cast<funct3_op>(inst->i_type.funct3),funct7_m_2,true));
+                if (!ri) {
+                    int64_t result = alu_exec(GPR[inst->r_type.rs1],imm,op,true);
+                    set_GPR(inst->r_type.rd,result);
+                }
                 break;
             }
             case OPCODE_OP: {
-                switch (inst->r_type.funct3) {
-                    case FUNCT3_ADD_SUB:
-                        if (inst->r_type.funct7 != FUNCT7_NORMAL && inst->r_type.funct7 != FUNCT7_SUB_SRA)  ri = true;
+                alu_op op = ALU_NOP;
+                switch (inst->r_type.funct7) {
+                    case FUNCT7_NORMAL: {
+                        switch (inst->r_type.funct3) {
+                            case FUNCT3_ADD_SUB:
+                                op = ALU_ADD;
+                                break;
+                            case FUNCT3_SLL:
+                                op = ALU_SLL;
+                                break;
+                            case FUNCT3_SLT:
+                                op = ALU_SLT;
+                                break;
+                            case FUNCT3_SLTU:
+                                op = ALU_SLTU;
+                                break;
+                            case FUNCT3_XOR:
+                                op = ALU_XOR;
+                                break;
+                            case FUNCT3_SRL_SRA:
+                                op = ALU_SRL;
+                                break;
+                            case FUNCT3_OR:
+                                op = ALU_OR;
+                                break;
+                            case FUNCT3_AND:
+                                op = ALU_AND;
+                                break;
+                            default:
+                                assert(false);
+                        }
                         break;
-                    case FUNCT3_SRL_SRA:
-                        if (inst->r_type.funct7 != FUNCT7_NORMAL && inst->r_type.funct7 != FUNCT7_SUB_SRA)  ri = true;
+                    }
+                    case FUNCT7_SUB_SRA: {
+                        switch (inst->r_type.funct3) {
+                            case FUNCT3_ADD_SUB:
+                                op = ALU_SUB;
+                                break;
+                            case FUNCT3_SRL_SRA:
+                                op = ALU_SRA;
+                                break;
+                            default:
+                                ri = true;
+                        }
                         break;
-                    default:
-                        if (inst->r_type.funct7 != FUNCT7_NORMAL) ri = true;
-                }
-                if (!ri) set_GPR(inst->r_type.rd,alu_exec(GPR[inst->r_type.rs1],GPR[inst->r_type.rs2],static_cast<funct3_op>(inst->r_type.funct3),inst->r_type.funct7 != 0));
-                break;
-            }
-            case OPCODE_OP32: {
-                switch (inst->r_type.funct3) {
-                    case FUNCT3_ADD_SUB:
-                        if (inst->r_type.funct7 != FUNCT7_NORMAL && inst->r_type.funct7 != FUNCT7_SUB_SRA)  ri = true;
+                    }
+                    case FUNCT7_MUL: {
+                        switch (inst->r_type.funct3) {
+                            case FUNCT3_MUL:
+                                op = ALU_MUL;
+                                break;
+                            case FUNCT3_MULH:
+                                op = ALU_MULH;
+                                break;
+                            case FUNCT3_MULHSU:
+                                op = ALU_MULHSU;
+                                break;
+                            case FUNCT3_MULHU:
+                                op = ALU_MULHU;
+                                break;
+                            case FUNCT3_DIV:
+                                op = ALU_DIV;
+                                break;
+                            case FUNCT3_DIVU:
+                                op = ALU_DIVU;
+                                break;
+                            case FUNCT3_REM:
+                                op = ALU_REM;
+                                break;
+                            case FUNCT3_REMU:
+                                op = ALU_REMU;
+                                break;
+                            default:
+                                assert(false);
+                        }
                         break;
-                    case FUNCT3_SLL:
-                        if (inst->r_type.funct7 != FUNCT7_NORMAL)  ri = true;
-                        break;
-                    case FUNCT3_SRL_SRA:
-                        if (inst->r_type.funct7 != FUNCT7_NORMAL && inst->r_type.funct7 != FUNCT7_SUB_SRA)  ri = true;
-                        break;
+                    }
                     default:
                         ri = true;
                 }
-                if (!ri) set_GPR(inst->r_type.rd,alu_exec(GPR[inst->r_type.rs1],GPR[inst->r_type.rs2],static_cast<funct3_op>(inst->r_type.funct3),inst->r_type.funct7 != 0));
+                if (!ri) {
+                    int64_t result = alu_exec(GPR[inst->r_type.rs1],GPR[inst->r_type.rs2],op);
+                    set_GPR(inst->r_type.rd,result);
+                }
+                break;
+            }
+            case OPCODE_OP32: {
+                alu_op op = ALU_NOP;
+                switch (inst->r_type.funct7) {
+                    case FUNCT7_NORMAL: {
+                        switch (inst->r_type.funct3) {
+                            case FUNCT3_ADD_SUB:
+                                op = ALU_ADD;
+                                break;
+                            case FUNCT3_SLL:
+                                op = ALU_SLL;
+                                break;
+                            case FUNCT3_SRL_SRA:
+                                op = ALU_SRL;
+                                break;
+                            default:
+                                ri = true;
+                        }
+                        break;
+                    }
+                    case FUNCT7_SUB_SRA: {
+                        switch (inst->r_type.funct3) {
+                            case FUNCT3_ADD_SUB:
+                                op = ALU_SUB;
+                                break;
+                            case FUNCT3_SRL_SRA:
+                                op = ALU_SRA;
+                                break;
+                            default:
+                                ri = true;
+                        }
+                        break;
+                    };
+                    case FUNCT7_MUL: {
+                        switch (inst->r_type.funct3) {
+                            case FUNCT3_MUL:
+                                op = ALU_MUL;
+                                break;
+                            case FUNCT3_DIV:
+                                op = ALU_DIV;
+                                break;
+                            case FUNCT3_DIVU:
+                                op = ALU_DIVU;
+                                break;
+                            case FUNCT3_REM:
+                                op = ALU_REM;
+                                break;
+                            case FUNCT3_REMU:
+                                op = ALU_REMU;
+                                break;
+                            default:
+                                ri = true;
+                        }
+                        break;
+                    }
+                    default:
+                        ri = true;
+                }
+                if (!ri) {
+                    int64_t result = alu_exec(GPR[inst->r_type.rs1],GPR[inst->r_type.rs2],op,true);
+                    set_GPR(inst->r_type.rd,result);
+                }
                 break;
             }
             case OPCODE_FENCE:
                 break;
-            case OPCODE_EEI:
+            case OPCODE_SYSTEM: {
+                ri = true;
                 break;
+            }
             default:
                 ri = true;
                 break;
         }
+        exception:
         if (!new_pc) pc = pc + 4;
         assert(!ri);
     }
@@ -274,33 +434,81 @@ private:
             return stat ? MEM_OK : MEM_ERR_STORE_ACCESS_FAULT;
         }
     }
-    int64_t alu_exec(int64_t a, int64_t b, funct3_op op, bool funct7_m_2, bool op_32 = false) {
+    int64_t alu_exec(int64_t a, int64_t b, alu_op op, bool op_32 = false) {
         if (op_32) {
             a = (int32_t)a;
             b = (int32_t)b;
         }
+        int64_t result = 0;
         switch (op) {
-            case FUNCT3_ADD_SUB:
-                return funct7_m_2 ? (a - b) : (a + b);
-            case FUNCT3_SLL:
-                return a << b;
-            case FUNCT3_SLT:
-                return a < b;
-            case FUNCT3_SLTU:
-                return (uint64_t)a < (uint64_t)b;
-            case FUNCT3_XOR:
-                return a ^ b;
-            case FUNCT3_SRL_SRA:
-                return funct7_m_2 ? (a >> b) : ((uint64_t)a >> b);
-            case FUNCT3_OR:
-                return (a | b);
-            case FUNCT3_AND:
-                return (a & b);
+            case ALU_ADD:
+                result = a + b;
+                break;
+            case ALU_SUB:
+                result = a - b;
+                break;
+            case ALU_SLL:
+                result = a << b;
+                break;
+            case ALU_SLT:
+                result = a < b;
+                break;
+            case ALU_SLTU:
+                result = (uint64_t)a < (uint64_t)b;
+                break;
+            case ALU_XOR:
+                result = a ^ b;
+                break;
+            case ALU_SRL:
+                result = (uint64_t)a >> b;
+                break;
+            case ALU_SRA:
+                result = a >> b;
+                break;
+            case ALU_OR:
+                result = a | b;
+                break;
+            case ALU_AND:
+                result = a & b;
+                break;
+            case ALU_MUL:
+                result = a * b;
+                break;
+            case ALU_MULH:
+                result = ((__int128_t)a*(__int128_t)b) >> 64;
+                break;
+            case ALU_MULHU:
+                result = ((__uint128_t)a*(__uint128_t)b) >> 64;
+                break;
+            case ALU_MULHSU:
+                result = ((__int128_t)a*(__uint128_t)b) >> 64;
+                break;
+            case ALU_DIV:
+                if (b == 0) result = -1;
+                else result = a / b;
+                break;
+            case ALU_DIVU:
+                if (b == 0) result = ULONG_MAX;
+                else result = ((uint64_t)a) / ((uint64_t)b);
+                break;
+            case ALU_REM:
+                if (b == 0) result = a;
+                else result = a % b;
+                break;
+            case ALU_REMU:
+                if (b == 0) result = a;
+                else result = (uint64_t)a % (uint64_t)b;
+                break;
             default:
-                return 0;
+                assert(false);
         }
+        if (op_32) result = (int32_t)result;
+        return result;
     }
-    void set_GPR(unsigned int GPR_index, long value) {
+    void set_GPR(uint8_t GPR_index, int64_t value) {
+        assert(GPR_index >= 0 && GPR_index < 32);
         if (GPR_index) GPR[GPR_index] = value;
     }
 };
+
+#endif
