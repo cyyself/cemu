@@ -317,7 +317,7 @@ struct csr_mcause_def {
 
 enum rv_exc_code_int {
     exc_s_sw_int    = 1,
-    exc_m_sw_int    = 2,
+    exc_m_sw_int    = 3,
     exc_s_timer_int = 5,
     exc_m_timer_int = 7,
     exc_s_ext_int   = 9,
