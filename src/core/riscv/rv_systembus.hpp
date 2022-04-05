@@ -55,7 +55,7 @@ public:
         return pa_write(pa,size,src);
     }
     // note: core should check whether amoop is valid 
-    bool pa_amo_op(uint64_t pa, uint64_t size, amo_rs3 op, int64_t src, int64_t &dst) {
+    bool pa_amo_op(uint64_t pa, uint64_t size, amo_funct op, int64_t src, int64_t &dst) {
         int64_t res;
         bool read_ok = true;
         if (size == 4) {

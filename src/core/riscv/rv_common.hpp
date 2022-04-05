@@ -130,7 +130,7 @@ enum funct3_system {
     FUNCT3_CSRRCI   = 0b111
 };
 
-enum amo_rs3 {
+enum amo_funct {
     LR  = 0b00010,
     SC  = 0b00011,
     AMOSWAP = 0b00001,
