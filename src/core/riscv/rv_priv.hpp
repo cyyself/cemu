@@ -471,13 +471,13 @@ public:
         csr_cause_def cause;
         cause.cause = cur_priv + 8;
         cause.interrupt = 0;
-        raise_trap(cause,0);
+        raise_trap(cause);
     }
     void ebreak() {
         csr_cause_def cause;
         cause.cause = exc_breakpoint;
         cause.interrupt = 0;
-        raise_trap(cause,0);
+        raise_trap(cause);
     }
     bool mret() { // if return false, raise illegal instruction
         if (cur_priv != M_MODE) return false;
@@ -489,7 +489,7 @@ public:
         mstatus->mpp = U_MODE;
         cur_need_trap = true;
         trap_pc = mepc;
-        
+        return true;
     }
     bool sret() { // if return false, raise illegal instruction
         if (cur_priv < S_MODE) return false;
@@ -501,11 +501,14 @@ public:
         sstatus->spp = U_MODE;
         cur_need_trap = true;
         trap_pc = sepc;
+        return true;
     }
-    void sfence_vma(uint64_t vaddr, uint64_t asid) {
+    bool sfence_vma(uint64_t vaddr, uint64_t asid) {
+        if (cur_priv < S_MODE) return false;
         sv39.sfence_vma(vaddr,asid);
+        return true;
     }
-    void raise_trap(csr_cause_def cause, uint64_t tval) {
+    void raise_trap(csr_cause_def cause, uint64_t tval = 0) {
         assert(!cur_need_trap);
         cur_need_trap = true;
         bool trap_to_s = false;
@@ -608,7 +611,7 @@ private:
                 if (mstatus->mie) final_int_index = int_index;
             }
         }
-        if(final_int_index != exc_custom_ok) raise_trap(csr_cause_def(final_int_index,1),0);
+        if(final_int_index != exc_custom_ok) raise_trap(csr_cause_def(final_int_index,1));
     }
     // status
     const uint64_t &cur_pc;

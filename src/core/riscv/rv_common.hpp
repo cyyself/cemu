@@ -130,9 +130,16 @@ enum funct3_system {
     FUNCT3_CSRRCI   = 0b111
 };
 
+enum funct7_priv {
+    FUNCT7_ECALL_EBREAK = 0b0000000,
+    FUNCT7_SRET_WFI     = 0b0001000,
+    FUNCT7_MRET         = 0b0011000,
+    FUNCT7_SFENCE_VMA   = 0b0001001
+};
+
 enum amo_funct {
-    LR  = 0b00010,
-    SC  = 0b00011,
+    AMOLR   = 0b00010,
+    AMOSC   = 0b00011,
     AMOSWAP = 0b00001,
     AMOADD  = 0b00000,
     AMOXOR  = 0b00100,

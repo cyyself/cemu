@@ -409,7 +409,7 @@ private:
                     break;
                 }
                 switch (funct5) {
-                    case LR: {
+                    case AMOLR: {
                         if (inst->r_type.rs2 != 0) ri = true;
                         else {
                             if (inst->r_type.funct3 == 0b011) {
@@ -427,7 +427,7 @@ private:
                         }
                         break;
                     }
-                    case SC: {
+                    case AMOSC: {
                         bool result;
                         rv_exc_code exc = priv.va_sc(GPR[inst->r_type.rs1],(1<<inst->r_type.funct3),(uint8_t*)&GPR[inst->r_type.rs2],result);
                         if (exc == exc_custom_ok) set_GPR(inst->r_type.rd,result);
@@ -448,7 +448,114 @@ private:
             case OPCODE_FENCE:
                 break;
             case OPCODE_SYSTEM: {
-                ri = true;
+                switch (inst->i_type.funct3) {
+                    case FUNCT3_PRIV: {
+                        uint64_t funct7 = inst->i_type.imm12 & ((1<<12)-1) >> 5;
+                        uint64_t rs2 = inst->i_type.imm12 & ((1<<5)-1);
+                        switch (funct7) {
+                            case FUNCT7_ECALL_EBREAK: {
+                                if (inst->r_type.rs1 == 0 && inst->r_type.rd == 0) {
+                                    switch (rs2) {
+                                        case 0: // ECALL
+                                            priv.ecall();
+                                            break;
+                                        case 1: // EBREAK
+                                            priv.ebreak();
+                                            break;
+                                        default:
+                                            ri = true;
+                                            break;
+                                    }
+                                }
+                                else ri = true;
+                                break;
+                            }
+                            case FUNCT7_SRET_WFI: {
+                                if (inst->r_type.rs1 == 0 && inst->r_type.rd == 0) {
+                                    switch (rs2) {
+                                        case 0b00010: // SRET
+                                            ri = priv.sret();
+                                            break;
+                                        case 0b00101: // WFI
+                                            break;
+                                        default:
+                                            ri = true;
+                                    }
+                                }
+                                break;
+                            }
+                            case FUNCT7_MRET: {
+                                if (rs2 == 0b00010 && inst->r_type.rs1 == 0 && inst->r_type.rd == 0) {
+                                    ri = priv.mret();
+                                }
+                                else ri = true;
+                                break;
+                            }
+                            case FUNCT7_SFENCE_VMA:
+                                ri = priv.sfence_vma(GPR[inst->r_type.rs1],GPR[inst->r_type.rs2]);
+                                break;
+                            default:
+                                ri = true;
+                        }
+                        break;
+                    }
+                    case FUNCT3_CSRRW: {
+                        rv_csr_addr csr_index = static_cast<rv_csr_addr>(inst->i_type.imm12&((1<<12)-1));
+                        ri = !priv.csr_op_permission_check(csr_index,inst->i_type.rs1 != 0);
+                        uint64_t csr_result;
+                        if (!ri) ri = !priv.csr_read(csr_index,csr_result);
+                        if (!ri) ri = !priv.csr_write(csr_index,GPR[inst->i_type.rs1]);
+                        if (!ri) set_GPR(csr_index,csr_result);
+                        break;
+                    }
+                    case FUNCT3_CSRRS: {
+                        rv_csr_addr csr_index = static_cast<rv_csr_addr>(inst->i_type.imm12&((1<<12)-1));
+                        ri = !priv.csr_op_permission_check(csr_index,inst->i_type.rs1 != 0);
+                        uint64_t csr_result;
+                        if (!ri) ri = !priv.csr_read(csr_index,csr_result);
+                        if (!ri) ri = !priv.csr_write(csr_index,csr_result | GPR[inst->i_type.rs1]);
+                        if (!ri) set_GPR(csr_index,csr_result);
+                        break;
+                    }
+                    case FUNCT3_CSRRC: {
+                        rv_csr_addr csr_index = static_cast<rv_csr_addr>(inst->i_type.imm12&((1<<12)-1));
+                        ri = !priv.csr_op_permission_check(csr_index,inst->i_type.rs1 != 0);
+                        uint64_t csr_result;
+                        if (!ri) ri = !priv.csr_read(csr_index,csr_result);
+                        if (!ri) ri = !priv.csr_write(csr_index,csr_result & (~GPR[inst->i_type.rs1]));
+                        if (!ri) set_GPR(csr_index,csr_result);
+                        break;
+                    }
+                    case FUNCT3_CSRRWI: {
+                        rv_csr_addr csr_index = static_cast<rv_csr_addr>(inst->i_type.imm12&((1<<12)-1));
+                        ri = !priv.csr_op_permission_check(csr_index,inst->i_type.rs1 != 0);
+                        uint64_t csr_result;
+                        if (!ri) ri = !priv.csr_read(csr_index,csr_result);
+                        if (!ri) ri = !priv.csr_write(csr_index,inst->i_type.rs1);
+                        if (!ri) set_GPR(csr_index,csr_result);
+                        break;
+                    }
+                    case FUNCT3_CSRRSI: {
+                        rv_csr_addr csr_index = static_cast<rv_csr_addr>(inst->i_type.imm12&((1<<12)-1));
+                        ri = !priv.csr_op_permission_check(csr_index,inst->i_type.rs1 != 0);
+                        uint64_t csr_result;
+                        if (!ri) ri = !priv.csr_read(csr_index,csr_result);
+                        if (!ri) ri = !priv.csr_write(csr_index,csr_result | inst->i_type.rs1);
+                        if (!ri) set_GPR(csr_index,csr_result);
+                        break;
+                    }
+                    case FUNCT3_CSRRCI: {
+                        rv_csr_addr csr_index = static_cast<rv_csr_addr>(inst->i_type.imm12&((1<<12)-1));
+                        ri = !priv.csr_op_permission_check(csr_index,inst->i_type.rs1 != 0);
+                        uint64_t csr_result;
+                        if (!ri) ri = !priv.csr_read(csr_index,csr_result);
+                        if (!ri) ri = !priv.csr_write(csr_index,csr_result & (inst->i_type.rs1));
+                        if (!ri) set_GPR(csr_index,csr_result);
+                        break;
+                    }
+                    default:
+                        ri = true; // HLV
+                }
                 break;
             }
             default:
@@ -474,6 +581,7 @@ private:
         rv_exc_code va_err = priv.va_read(start_addr,size,buffer);
         if (va_err == exc_custom_ok) {
             return true;
+
         }
         else {
             priv.raise_trap(csr_cause_def(va_err),start_addr);
