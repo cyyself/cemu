@@ -24,7 +24,7 @@ int main() {
     rv_core rv(system_bus,0);
     while (1) {
         clint.tick();
-        rv.step(false,false,false,false);
+        rv.step(false,clint.m_s_irq(0),clint.m_t_irq(0),uart.irq());
         while (uart.exist_tx()) {
             char c = uart.getc();
             if (c != '\r') std::cout << c;

@@ -29,6 +29,13 @@ public:
     void step(bool meip, bool msip, bool mtip, bool seip) {
         exec(meip,msip,mtip,seip);
     }
+    void jump(uint64_t new_pc) {
+        pc = new_pc;
+    }
+    void set_GPR(uint8_t GPR_index, int64_t value) {
+        assert(GPR_index >= 0 && GPR_index < 32);
+        if (GPR_index) GPR[GPR_index] = value;
+    }
 private:
     rv_systembus &systembus;
     uint64_t pc = 0;
@@ -672,10 +679,6 @@ private:
         }
         if (op_32) result = (int32_t)result;
         return result;
-    }
-    void set_GPR(uint8_t GPR_index, int64_t value) {
-        assert(GPR_index >= 0 && GPR_index < 32);
-        if (GPR_index) GPR[GPR_index] = value;
     }
 };
 
