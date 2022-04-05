@@ -1,11 +1,11 @@
 #ifndef RV_CORE_HPP
 #define RV_CORE_HPP
 
-#include <core.hpp>
 #include <bitset>
 #include "rv_common.hpp"
 #include <assert.h>
 #include "rv_systembus.hpp"
+#include "rv_priv.hpp"
 
 enum mem_err_code {
     MEM_OK = 0,
@@ -21,27 +21,35 @@ enum alu_op {
     ALU_NOP
 };
 
-class rv_core : public core {
+class rv_core {
 public:
-    rv_core(rv_systembus &systembus):systembus(systembus) {
+    rv_core(rv_systembus &systembus, uint8_t hart_id = 0):systembus(systembus),priv(hart_id,pc,systembus) {
         GPR[0] = 0;
     }
-    void step() {
-        exec();
+    void step(bool meip, bool msip, bool mtip, bool seip) {
+        exec(meip,msip,mtip,seip);
     }
 private:
     rv_systembus &systembus;
     uint64_t pc = 0;
+    rv_priv priv;
     int64_t GPR[32];
-    void exec() {
-    instr_fetch:
-        bool instr_align = ( (pc % 4) == 0);
-        uint32_t cur_instr;
-        union rv_instr *inst = (rv_instr*)&cur_instr;
-        mem_err_code instr_err = mem_read(pc,4,(unsigned char*)inst);
-    decode_exec:
+    void exec(bool meip, bool msip, bool mtip, bool seip) {
         bool ri = false;
         bool new_pc = false;
+        uint32_t cur_instr = 0;
+        rv_instr *inst = (rv_instr*)&cur_instr;
+        rv_exc_code if_exc;
+    instr_fetch:
+        priv.pre_exec(meip,msip,mtip,seip);
+        if (priv.need_trap()) goto exception;
+        if (pc % 4) priv.raise_trap(csr_cause_def(exc_instr_misalign),pc);
+        if_exc = priv.va_if(pc,4,(uint8_t*)&cur_instr);
+        if (if_exc != exc_custom_ok) {
+            priv.raise_trap(csr_cause_def(if_exc),pc);
+            goto exception;
+        }
+    decode_exec:
         switch (inst->r_type.opcode) {
             case OPCODE_LUI:
                 set_GPR(inst->u_type.rd,((int64_t)inst->u_type.imm_31_12) << 12);
@@ -108,44 +116,44 @@ private:
                 switch (inst->i_type.funct3) {
                     case FUNCT3_LB: {
                         int8_t buf;
-                        mem_read(mem_addr,1,(unsigned char*)&buf);
-                        set_GPR(inst->i_type.rd,buf);
+                        bool ok = mem_read(mem_addr,1,(unsigned char*)&buf);
+                        if (ok) set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LH: {
                         int16_t buf;
-                        mem_read(mem_addr,2,(unsigned char*)&buf);
-                        set_GPR(inst->i_type.rd,buf);
+                        bool ok = mem_read(mem_addr,2,(unsigned char*)&buf);
+                        if (ok) set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LW: {
                         int32_t buf;
-                        mem_read(mem_addr,4,(unsigned char*)&buf);
-                        set_GPR(inst->i_type.rd,buf);
+                        bool ok = mem_read(mem_addr,4,(unsigned char*)&buf);
+                        if (ok) set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LD: {
                         int64_t buf;
-                        mem_read(mem_addr,8,(unsigned char*)&buf);
-                        set_GPR(inst->i_type.rd,buf);
+                        bool ok = mem_read(mem_addr,8,(unsigned char*)&buf);
+                        if (ok) set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LBU: {
                         uint8_t buf;
-                        mem_read(mem_addr,1,(unsigned char*)&buf);
-                        set_GPR(inst->i_type.rd,buf);
+                        bool ok = mem_read(mem_addr,1,(unsigned char*)&buf);
+                        if (ok) set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LHU: {
                         uint16_t buf;
-                        mem_read(mem_addr,2,(unsigned char*)&buf);
-                        set_GPR(inst->i_type.rd,buf);
+                        bool ok = mem_read(mem_addr,2,(unsigned char*)&buf);
+                        if (ok) set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LWU: {
                         uint32_t buf;
-                        mem_read(mem_addr,4,(unsigned char*)&buf);
-                        set_GPR(inst->i_type.rd,buf);
+                        bool ok = mem_read(mem_addr,4,(unsigned char*)&buf);
+                        if (ok) set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     default:
@@ -404,19 +412,44 @@ private:
                 ri = true;
                 break;
         }
-        exception:
-        if (!new_pc) pc = pc + 4;
+    exception:
         assert(!ri);
+        if (ri) {
+            priv.raise_trap(csr_cause_def(exc_illegal_instr),cur_instr);
+        }
+        if (priv.need_trap()) {
+            pc = priv.get_trap_pc();
+        }
+        else if (!new_pc) pc = pc + 4;
+        priv.post_exec();
     }
-    mem_err_code mem_read(unsigned long start_addr, unsigned long size, unsigned char* buffer) {
-        bool stat = systembus.pa_read(start_addr,size,buffer);
-        assert(stat);
-        return stat ? MEM_OK : MEM_ERR_LOAD_ACCESS_FAULT;
+    bool mem_read(uint64_t start_addr, uint64_t size, uint8_t *buffer) {
+        if (start_addr % size != 0) {
+            priv.raise_trap(csr_cause_def(exc_load_misalign),start_addr);
+            return false;
+        }
+        rv_exc_code va_err = priv.va_read(start_addr,size,buffer);
+        if (va_err == exc_custom_ok) {
+            return true;
+        }
+        else {
+            priv.raise_trap(csr_cause_def(va_err),start_addr);
+            return false;
+        }
     }
-    mem_err_code mem_write(unsigned long start_addr, unsigned long size, const unsigned char* buffer) {
-        bool stat = systembus.pa_write(start_addr,size,buffer);
-        assert(stat);
-        return stat ? MEM_OK : MEM_ERR_STORE_ACCESS_FAULT;
+    bool mem_write(uint64_t start_addr, uint64_t size, const uint8_t *buffer) {
+        if (start_addr % size != 0) {
+            priv.raise_trap(csr_cause_def(exc_store_misalign),start_addr);
+            return false;
+        }
+        rv_exc_code va_err = priv.va_write(start_addr,size,buffer);
+        if (va_err == exc_custom_ok) {
+            return true;
+        }
+        else {
+            priv.raise_trap(csr_cause_def(va_err),start_addr);
+            return false;
+        }
     }
     int64_t alu_exec(int64_t a, int64_t b, alu_op op, bool op_32 = false) {
         if (op_32) {

@@ -21,10 +21,10 @@ int main() {
     assert(system_bus.add_dev(0x2000000,0x10000,&clint));
     assert(system_bus.add_dev(0x80000000,2048l*1024l*1024l,&dram));
     
-    rv_core rv(system_bus);
+    rv_core rv(system_bus,0);
     while (1) {
         clint.tick();
-        rv.step();
+        rv.step(false,false,false,false);
         while (uart.exist_tx()) {
             char c = uart.getc();
             if (c != '\r') std::cout << c;

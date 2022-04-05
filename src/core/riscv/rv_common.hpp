@@ -288,6 +288,8 @@ struct csr_sstatus_def {
 struct csr_cause_def {
     uint64_t cause  : 63;
     uint64_t interrupt : 1;
+    csr_cause_def(uint64_t cause, uint64_t interrupt=0):cause(cause),interrupt(interrupt){}
+    csr_cause_def():cause(0),interrupt(0){}
 };
 
 struct csr_tvec_def {
@@ -309,27 +311,22 @@ struct int_def { // interrupt pending
     uint64_t m_e_ip : 1;
 };
 
-struct csr_mcause_def {
-    uint64_t exception_code : 63;
-    uint64_t interrupt      : 1;
-};
 
-
-enum rv_exc_code_int {
-    exc_s_sw_int    = 1,
-    exc_m_sw_int    = 3,
-    exc_s_timer_int = 5,
-    exc_m_timer_int = 7,
-    exc_s_ext_int   = 9,
-    exc_m_ext_int   = 11
+enum rv_int_code {
+    int_s_sw    = 1,
+    int_m_sw    = 3,
+    int_s_timer = 5,
+    int_m_timer = 7,
+    int_s_ext   = 9,
+    int_m_ext   = 11
 };
 
 // supervisor interrupt mask
-const uint64_t s_int_mask = (1ull<<exc_s_ext_int) | (1ull<<exc_s_sw_int) | (1ull<<exc_s_timer_int);
+const uint64_t s_int_mask = (1ull<<int_s_ext) | (1ull<<int_s_sw) | (1ull<<int_s_timer);
 // machine interrupt mask
-const uint64_t m_int_mask = s_int_mask | (1ull<<exc_m_ext_int) | (1ull<<exc_m_sw_int) | (1ull<<exc_m_timer_int);
+const uint64_t m_int_mask = s_int_mask | (1ull<<int_m_ext) | (1ull<<int_m_sw) | (1ull<<int_m_timer);
 
-enum rv_exc_code_noint {
+enum rv_exc_code {
     exc_instr_misalign  = 0,
     exc_instr_acc_fault = 1,
     exc_illegal_instr   = 2,
@@ -343,7 +340,8 @@ enum rv_exc_code_noint {
     exc_ecall_from_machine      = 11,
     exc_instr_pgfault   = 12,
     exc_load_pgfault    = 13,
-    exc_store_pgfault   = 15// including amo
+    exc_store_pgfault   = 15,// including amo
+    exc_custom_ok       = 24
 };
 
 const uint64_t s_exc_mask = (1<<16) - 1 - (1<<exc_ecall_from_machine);
