@@ -402,6 +402,49 @@ private:
                 }
                 break;
             }
+            case OPCODE_AMO: {
+                uint8_t funct5 = (inst->r_type.funct7) >> 2;
+                if (inst->r_type.funct3 != 0b010 && inst->r_type.funct3 != 0b011) {
+                    ri = true;
+                    break;
+                }
+                switch (funct5) {
+                    case LR: {
+                        if (inst->r_type.rs2 != 0) ri = true;
+                        else {
+                            if (inst->r_type.funct3 == 0b011) {
+                                int64_t result;
+                                rv_exc_code exc = priv.va_lr(GPR[inst->r_type.rs1],(1<<inst->r_type.funct3),(uint8_t*)&result);
+                                if (exc == exc_custom_ok) set_GPR(inst->r_type.rd,result);
+                                else priv.raise_trap(csr_cause_def(exc),GPR[inst->r_type.rs1]);
+                            }
+                            else {
+                                int32_t result;
+                                rv_exc_code exc = priv.va_lr(GPR[inst->r_type.rs1],(1<<inst->r_type.funct3),(uint8_t*)&result);
+                                if (exc == exc_custom_ok) set_GPR(inst->r_type.rd,result);
+                                else priv.raise_trap(csr_cause_def(exc),GPR[inst->r_type.rs1]);
+                            }
+                        }
+                        break;
+                    }
+                    case SC: {
+                        bool result;
+                        rv_exc_code exc = priv.va_sc(GPR[inst->r_type.rs1],(1<<inst->r_type.funct3),(uint8_t*)&GPR[inst->r_type.rs2],result);
+                        if (exc == exc_custom_ok) set_GPR(inst->r_type.rd,result);
+                        else priv.raise_trap(csr_cause_def(exc),GPR[inst->r_type.rs1]);
+                        break;
+                    }
+                    case AMOSWAP: case AMOADD: case AMOXOR: case AMOAND: case AMOOR: case AMOMIN: case AMOMAX: case AMOMINU: case AMOMAXU: {
+                        int64_t result;
+                        rv_exc_code exc = priv.va_amo(GPR[inst->r_type.rs1],(1<<inst->r_type.funct3),static_cast<amo_funct>(funct5),GPR[inst->r_type.rs2],result);
+                        if (exc == exc_custom_ok) set_GPR(inst->r_type.rd,result);
+                        else priv.raise_trap(csr_cause_def(exc),GPR[inst->r_type.rs1]);
+                    }
+                    default:
+                        ri = true;
+                }
+                break;
+            }
             case OPCODE_FENCE:
                 break;
             case OPCODE_SYSTEM: {
