@@ -8,6 +8,7 @@
 #include "rv_priv.hpp"
 #include <deque>
 
+extern bool riscv_test_u_ecall;
 
 enum mem_err_code {
     MEM_OK = 0,
@@ -77,11 +78,13 @@ private:
                 pc += (inst->j_type.imm_20 << 20) | (inst->j_type.imm_19_12 << 12) | (inst->j_type.imm_11 << 11) | (inst->j_type.imm_10_1 << 1);
                 new_pc = true;
                 break;
-            case OPCODE_JALR:
-                set_GPR(inst->j_type.rd,pc + 4);
-                pc =  GPR[inst->i_type.rs1] + GPR[inst->i_type.imm12];
+            case OPCODE_JALR: {
+                uint64_t pcp4 = pc + 4;
+                pc = GPR[inst->i_type.rs1] + inst->i_type.imm12;
+                set_GPR(inst->j_type.rd,pcp4);
                 new_pc = true;
                 break;
+            }
             case OPCODE_BRANCH: {
                 int64_t offset = (inst->b_type.imm_12 << 12) | (inst->b_type.imm_11 << 11) | (inst->b_type.imm_10_5 << 5) | (inst->b_type.imm_4_1 << 1);
                 switch (inst->b_type.funct3) {
@@ -229,7 +232,7 @@ private:
                         break;
                     case FUNCT3_SRL_SRA: 
                         imm = imm & ((1 << 6) - 1);
-                        op = ALU_SRL;
+                        op = ( (fun6 == FUNCT6_SRA) ? ALU_SRA : ALU_SRL);
                         if (fun6 != FUNCT6_NORMAL && fun6 != FUNCT6_SRA) ri = true;
                         break;
                     default:
@@ -243,7 +246,7 @@ private:
             }
             case OPCODE_OPIMM32: {
                 int64_t imm = inst->i_type.imm12;
-                funct6 fun6 = static_cast<funct6>((inst->r_type.funct7) >> 1);
+                funct7 fun7 = static_cast<funct7>((inst->r_type.funct7));
                 alu_op op;
                 switch (inst->i_type.funct3) {
                     case FUNCT3_ADD_SUB:
@@ -252,11 +255,12 @@ private:
                     case FUNCT3_SLL:
                         if (imm >= 64) ri = true;
                         op = ALU_SLL;
+                        if (fun7 != FUNCT7_NORMAL) ri = true;
                         break;
                     case FUNCT3_SRL_SRA: 
                         imm = imm & ((1 << 6) - 1);
-                        op = ALU_SRL;
-                        if (fun6 != FUNCT6_NORMAL && fun6 != FUNCT6_SRA) ri = true;
+                        op = ( (fun7 == FUNCT7_SUB_SRA) ? ALU_SRA : ALU_SRL);
+                        if (fun7 != FUNCT7_NORMAL && fun7 != FUNCT7_SUB_SRA) ri = true;
                         break;
                     default:
                         ri = true;
@@ -472,9 +476,23 @@ private:
                             case FUNCT7_ECALL_EBREAK: {
                                 if (inst->r_type.rs1 == 0 && inst->r_type.rd == 0) {
                                     switch (rs2) {
-                                        case 0: // ECALL
-                                            priv.ecall();
+                                        case 0: {// ECALL
+                                            if (riscv_test_u_ecall) {
+                                                if (GPR[17] == 93) {
+                                                    if (GPR[10] == 0) {
+                                                        printf("Test Pass!\n");
+                                                        exit(0);
+                                                    }
+                                                    else {
+                                                        printf("Failed Testnum %ld\n",GPR[10]);
+                                                        exit(1);
+                                                    }
+                                                }
+                                                else assert(false);
+                                            }
+                                            else priv.ecall();
                                             break;
+                                        }
                                         case 1: // EBREAK
                                             priv.ebreak();
                                             break;
@@ -631,7 +649,7 @@ private:
                 result = a - b;
                 break;
             case ALU_SLL:
-                result = a << b;
+                result = a << (b & (op_32 ? 0x1f : 0x3f));
                 break;
             case ALU_SLT:
                 result = a < b;
@@ -643,10 +661,10 @@ private:
                 result = a ^ b;
                 break;
             case ALU_SRL:
-                result = (uint64_t)a >> b;
+                result = (uint64_t)(op_32 ? (a&0xffffffff) : a) >> (b & (op_32 ? 0x1f : 0x3f));
                 break;
             case ALU_SRA:
-                result = a >> b;
+                result = a >> (b & (op_32 ? 0x1f : 0x3f));
                 break;
             case ALU_OR:
                 result = a | b;

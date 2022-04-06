@@ -8,12 +8,19 @@
 #include "rv_systembus.hpp"
 #include "rv_clint.hpp"
 
-int main() {
+bool riscv_test_u_ecall = false;
+
+int main(int argc, const char* argv[]) {
+    
+    const char *load_path = "../opensbi/build/platform/generic/firmware/fw_payload.bin";
+    if (argc >= 2) load_path = argv[1];
+    for (int i=1;i<argc;i++) if (strcmp(argv[i],"-rvtestu") == 0) riscv_test_u_ecall = true;
+
     rv_systembus system_bus;
     
     uartlite uart;
     rv_clint<1> clint;
-    ram dram(4096l*1024l*1024l,"../opensbi/build/platform/generic/firmware/fw_payload.bin");
+    ram dram(4096l*1024l*1024l,load_path);
 
     assert(system_bus.add_dev(0x60100000,1024*1024,&uart));
     assert(system_bus.add_dev(0x2000000,0x10000,&clint));
