@@ -53,7 +53,7 @@ public:
     bool pa_sc(uint64_t pa, uint64_t size, const uint8_t *src, uint64_t hart_id, bool &sc_ok) {
         if (!lr_valid || lr_pa != pa || lr_size != size || lr_hart != hart_id) {
             sc_ok = false;
-            lr_valid = false;
+            if (hart_id == lr_hart) lr_valid = false;
             return false;
         }
         sc_ok = true;
