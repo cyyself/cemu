@@ -237,7 +237,7 @@ enum rv_csr_addr {
 
 struct csr_misa_def {
     uint64_t ext    : 26;
-    uint64_t blank  : 26;
+    uint64_t blank  : 36;
     uint64_t mxl    : 2;
 };
 
