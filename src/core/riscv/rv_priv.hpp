@@ -48,12 +48,14 @@ public:
         stval = 0;
         satp = 0;
         scounteren = 0;
+        time = 0;
         for (int i=0;i<16;i++) pmpcfg[i] = 0;
         for (int i=0;i<64;i++) pmpaddr[i] = 0;
     }
 
     void pre_exec(bool meip, bool msip, bool mtip, bool seip) {
         mcycle ++;
+        time ++;
         int_def *ip_bits = (int_def*)&ip;
         ip_bits->m_e_ip = meip;
         ip_bits->m_s_ip = msip;
@@ -194,12 +196,17 @@ public:
                 csr_result = minstret;
                 break;
             }
+            case csr_time:
+                csr_result = time;
+                break;
             default:
                 if (csr_index >= 0x3a0 && csr_index <= 0x3af) { // pmpcfg
-                    return pmpcfg[csr_index - 0x3a0];
+                    csr_result = pmpcfg[csr_index - 0x3a0];
+                    return true;
                 }
                 else if (csr_index >= 0x3b0 && csr_index <= 0x3ef) { // pmpaddr
-                    return pmpaddr[csr_index - 0x3b0];
+                    csr_result = pmpaddr[csr_index - 0x3b0];
+                    return true;
                 }
                 else return false;
         }
@@ -334,7 +341,7 @@ public:
         return ret;
     }
     bool csr_op_permission_check(uint16_t csr_index, bool write) {
-        if ( ((csr_index >> 8) & 3) < cur_priv) return false;
+        if ( ((csr_index >> 8) & 3) > cur_priv) return false;
         if ( ((csr_index >> 10) & 3 == 3) && write) return false;
         return true;
     }
@@ -648,6 +655,7 @@ private:
     uint64_t        stval;
     uint64_t        satp;
     
+    uint64_t        time;
     
     uint64_t        scounteren;
     uint64_t        pmpcfg[16];

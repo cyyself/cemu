@@ -11,17 +11,16 @@
 int main() {
     rv_systembus system_bus;
     
-    ram bootram(32*1024,"../cyyrv64/test/workbench/start.bin");
     uartlite uart;
     rv_clint<1> clint;
-    ram dram(4096l*1024l*1024l);
+    ram dram(4096l*1024l*1024l,"../opensbi/build/platform/generic/firmware/fw_payload.bin");
 
-    assert(system_bus.add_dev(0x0,32*1024,&bootram));
-    assert(system_bus.add_dev(0x60000000,1024*1024,&uart));
+    assert(system_bus.add_dev(0x60100000,1024*1024,&uart));
     assert(system_bus.add_dev(0x2000000,0x10000,&clint));
     assert(system_bus.add_dev(0x80000000,2048l*1024l*1024l,&dram));
-    
+
     rv_core rv(system_bus,0);
+    rv.jump(0x80000000);
     while (1) {
         clint.tick();
         rv.step(false,clint.m_s_irq(0),clint.m_t_irq(0),uart.irq());

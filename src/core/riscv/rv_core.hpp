@@ -6,6 +6,8 @@
 #include <assert.h>
 #include "rv_systembus.hpp"
 #include "rv_priv.hpp"
+#include <deque>
+
 
 enum mem_err_code {
     MEM_OK = 0,
@@ -24,7 +26,7 @@ enum alu_op {
 class rv_core {
 public:
     rv_core(rv_systembus &systembus, uint8_t hart_id = 0):systembus(systembus),priv(hart_id,pc,systembus) {
-        GPR[0] = 0;
+        for (int i=0;i<32;i++) GPR[i] = 0;
     }
     void step(bool meip, bool msip, bool mtip, bool seip) {
         exec(meip,msip,mtip,seip);
@@ -37,11 +39,17 @@ public:
         if (GPR_index) GPR[GPR_index] = value;
     }
 private:
+    const uint32_t trace_size = 0;
+    std::deque <uint64_t> trace;
     rv_systembus &systembus;
     uint64_t pc = 0;
     rv_priv priv;
     int64_t GPR[32];
     void exec(bool meip, bool msip, bool mtip, bool seip) {
+        if (trace_size) {
+            trace.push_back(pc);
+            if (trace.size() > trace_size) trace.pop_front();
+        }
         bool ri = false;
         bool new_pc = false;
         uint32_t cur_instr = 0;
@@ -446,6 +454,7 @@ private:
                         rv_exc_code exc = priv.va_amo(GPR[inst->r_type.rs1],(1<<inst->r_type.funct3),static_cast<amo_funct>(funct5),GPR[inst->r_type.rs2],result);
                         if (exc == exc_custom_ok) set_GPR(inst->r_type.rd,result);
                         else priv.raise_trap(csr_cause_def(exc),GPR[inst->r_type.rs1]);
+                        break;
                     }
                     default:
                         ri = true;
@@ -457,8 +466,8 @@ private:
             case OPCODE_SYSTEM: {
                 switch (inst->i_type.funct3) {
                     case FUNCT3_PRIV: {
-                        uint64_t funct7 = inst->i_type.imm12 & ((1<<12)-1) >> 5;
-                        uint64_t rs2 = inst->i_type.imm12 & ((1<<5)-1);
+                        uint64_t funct7 = ((inst->i_type.imm12) & ((1<<12)-1)) >> 5;
+                        uint64_t rs2 = (inst->i_type.imm12) & ((1<<5)-1);
                         switch (funct7) {
                             case FUNCT7_ECALL_EBREAK: {
                                 if (inst->r_type.rs1 == 0 && inst->r_type.rd == 0) {
@@ -481,7 +490,7 @@ private:
                                 if (inst->r_type.rs1 == 0 && inst->r_type.rd == 0) {
                                     switch (rs2) {
                                         case 0b00010: // SRET
-                                            ri = priv.sret();
+                                            ri = !priv.sret();
                                             break;
                                         case 0b00101: // WFI
                                             break;
@@ -493,13 +502,13 @@ private:
                             }
                             case FUNCT7_MRET: {
                                 if (rs2 == 0b00010 && inst->r_type.rs1 == 0 && inst->r_type.rd == 0) {
-                                    ri = priv.mret();
+                                    ri = !priv.mret();
                                 }
                                 else ri = true;
                                 break;
                             }
                             case FUNCT7_SFENCE_VMA:
-                                ri = priv.sfence_vma(GPR[inst->r_type.rs1],GPR[inst->r_type.rs2]);
+                                ri = !priv.sfence_vma(GPR[inst->r_type.rs1],GPR[inst->r_type.rs2]);
                                 break;
                             default:
                                 ri = true;
@@ -511,8 +520,8 @@ private:
                         ri = !priv.csr_op_permission_check(csr_index,inst->i_type.rs1 != 0);
                         uint64_t csr_result;
                         if (!ri) ri = !priv.csr_read(csr_index,csr_result);
-                        if (!ri) ri = !priv.csr_write(csr_index,GPR[inst->i_type.rs1]);
-                        if (!ri) set_GPR(csr_index,csr_result);
+                        if (!ri && inst->i_type.rs1) ri = !priv.csr_write(csr_index,GPR[inst->i_type.rs1]);
+                        if (!ri && inst->i_type.rd) set_GPR(inst->i_type.rd,csr_result);
                         break;
                     }
                     case FUNCT3_CSRRS: {
@@ -520,8 +529,8 @@ private:
                         ri = !priv.csr_op_permission_check(csr_index,inst->i_type.rs1 != 0);
                         uint64_t csr_result;
                         if (!ri) ri = !priv.csr_read(csr_index,csr_result);
-                        if (!ri) ri = !priv.csr_write(csr_index,csr_result | GPR[inst->i_type.rs1]);
-                        if (!ri) set_GPR(csr_index,csr_result);
+                        if (!ri && inst->i_type.rs1) ri = !priv.csr_write(csr_index,csr_result | GPR[inst->i_type.rs1]);
+                        if (!ri && inst->i_type.rd) set_GPR(inst->i_type.rd,csr_result);
                         break;
                     }
                     case FUNCT3_CSRRC: {
@@ -529,8 +538,8 @@ private:
                         ri = !priv.csr_op_permission_check(csr_index,inst->i_type.rs1 != 0);
                         uint64_t csr_result;
                         if (!ri) ri = !priv.csr_read(csr_index,csr_result);
-                        if (!ri) ri = !priv.csr_write(csr_index,csr_result & (~GPR[inst->i_type.rs1]));
-                        if (!ri) set_GPR(csr_index,csr_result);
+                        if (!ri && inst->i_type.rs1) ri = !priv.csr_write(csr_index,csr_result & (~GPR[inst->i_type.rs1]));
+                        if (!ri && inst->i_type.rd) set_GPR(inst->i_type.rd,csr_result);
                         break;
                     }
                     case FUNCT3_CSRRWI: {
@@ -538,8 +547,8 @@ private:
                         ri = !priv.csr_op_permission_check(csr_index,inst->i_type.rs1 != 0);
                         uint64_t csr_result;
                         if (!ri) ri = !priv.csr_read(csr_index,csr_result);
-                        if (!ri) ri = !priv.csr_write(csr_index,inst->i_type.rs1);
-                        if (!ri) set_GPR(csr_index,csr_result);
+                        if (!ri && inst->i_type.rs1) ri = !priv.csr_write(csr_index,inst->i_type.rs1);
+                        if (!ri && inst->i_type.rd) set_GPR(inst->i_type.rd,csr_result);
                         break;
                     }
                     case FUNCT3_CSRRSI: {
@@ -547,8 +556,8 @@ private:
                         ri = !priv.csr_op_permission_check(csr_index,inst->i_type.rs1 != 0);
                         uint64_t csr_result;
                         if (!ri) ri = !priv.csr_read(csr_index,csr_result);
-                        if (!ri) ri = !priv.csr_write(csr_index,csr_result | inst->i_type.rs1);
-                        if (!ri) set_GPR(csr_index,csr_result);
+                        if (!ri && inst->i_type.rs1) ri = !priv.csr_write(csr_index,csr_result | inst->i_type.rs1);
+                        if (!ri && inst->i_type.rd) set_GPR(inst->i_type.rd,csr_result);
                         break;
                     }
                     case FUNCT3_CSRRCI: {
@@ -556,8 +565,8 @@ private:
                         ri = !priv.csr_op_permission_check(csr_index,inst->i_type.rs1 != 0);
                         uint64_t csr_result;
                         if (!ri) ri = !priv.csr_read(csr_index,csr_result);
-                        if (!ri) ri = !priv.csr_write(csr_index,csr_result & (inst->i_type.rs1));
-                        if (!ri) set_GPR(csr_index,csr_result);
+                        if (!ri && inst->i_type.rs1) ri = !priv.csr_write(csr_index,csr_result & (inst->i_type.rs1));
+                        if (!ri && inst->i_type.rd) set_GPR(inst->i_type.rd,csr_result);
                         break;
                     }
                     default:
@@ -570,7 +579,6 @@ private:
                 break;
         }
     exception:
-        assert(!ri);
         if (ri) {
             priv.raise_trap(csr_cause_def(exc_illegal_instr),cur_instr);
         }
