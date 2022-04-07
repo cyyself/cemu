@@ -7,17 +7,32 @@
 #include "rv_core.hpp"
 #include "rv_systembus.hpp"
 #include "rv_clint.hpp"
+#include <termios.h>
+#include <unistd.h>
+#include <thread>
 
 bool riscv_test_u_ecall = false;
 
+void uart_input(uartlite &uart) {
+    termios tmp;
+    tcgetattr(STDIN_FILENO,&tmp);
+    tmp.c_lflag &=(~ICANON & ~ECHO);
+    tcsetattr(STDIN_FILENO,TCSANOW,&tmp);
+    while (1) {
+        char c = getchar();
+        if (c == 10) c = 13; // convert lf to cr
+        uart.putc(c);
+    }
+}
+
 int main(int argc, const char* argv[]) {
-    
+
     const char *load_path = "../opensbi/build/platform/generic/firmware/fw_payload.bin";
     if (argc >= 2) load_path = argv[1];
     for (int i=1;i<argc;i++) if (strcmp(argv[i],"-rvtestu") == 0) riscv_test_u_ecall = true;
 
     rv_systembus system_bus;
-    
+
     uartlite uart;
     rv_clint<1> clint;
     ram dram(4096l*1024l*1024l,load_path);
@@ -27,6 +42,9 @@ int main(int argc, const char* argv[]) {
     assert(system_bus.add_dev(0x80000000,2048l*1024l*1024l,&dram));
 
     rv_core rv(system_bus,0);
+
+    std::thread        uart_input_thread(uart_input,std::ref(uart));
+
     rv.jump(0x80000000);
     while (1) {
         clint.tick();
