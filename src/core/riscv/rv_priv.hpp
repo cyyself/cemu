@@ -458,7 +458,7 @@ public:
             if (cur_priv == U_MODE && !tlb_e->U) return exc_store_pgfault;
             if (!mstatus->sum && cur_priv == S_MODE && tlb_e->U) return exc_store_pgfault;
             uint64_t pa = tlb_e->ppa + (start_addr % ( (tlb_e->pagesize==1)?(1<<12):((tlb_e->pagesize==2)?(1<<21):(1<<30))));
-            bool pstatus = bus.pa_amo_op(start_addr,size,op,src,dst);
+            bool pstatus = bus.pa_amo_op(pa,size,op,src,dst);
             if (!pstatus) return exc_store_pgfault;
             else return exc_custom_ok;
         }
@@ -509,7 +509,6 @@ public:
         assert(!cur_need_trap);
         cur_need_trap = true;
         bool trap_to_s = false;
-        // if (!cause.interrupt) printf("trap %d at pc %lx\n",cause.cause,cur_pc)
         // check delegate to s
         if (cur_priv != M_MODE) {
             if (cause.interrupt) {

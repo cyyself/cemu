@@ -109,9 +109,6 @@ private:
                 pte_out = pte;
                 pagesize = (1<<12) << (9*i);
                 uint64_t pa = (((((uint64_t)pte.PPN2 << 9) | (uint64_t)pte.PPN1) << 9) | (uint64_t)pte.PPN0) << 12;
-                if (pa < 0x80000000 || pa >= 0x100000000) {
-                    assert(false);
-                }
                 //printf("ptw ok!\n");
                 return true;
             }
