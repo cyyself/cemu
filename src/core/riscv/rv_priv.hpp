@@ -49,8 +49,6 @@ public:
         satp = 0;
         scounteren = 0;
         time = 0;
-        for (int i=0;i<16;i++) pmpcfg[i] = 0;
-        for (int i=0;i<64;i++) pmpaddr[i] = 0;
     }
 
     void pre_exec(bool meip, bool msip, bool mtip, bool seip) {
@@ -200,15 +198,7 @@ public:
                 csr_result = time;
                 break;
             default:
-                if (csr_index >= 0x3a0 && csr_index <= 0x3af) { // pmpcfg
-                    csr_result = pmpcfg[csr_index - 0x3a0];
-                    return true;
-                }
-                else if (csr_index >= 0x3b0 && csr_index <= 0x3ef) { // pmpaddr
-                    csr_result = pmpaddr[csr_index - 0x3b0];
-                    return true;
-                }
-                else return false;
+                return false;
         }
         return true;
     }
@@ -314,13 +304,7 @@ public:
                 break;
             }
             default:
-                if (csr_index >= 0x3a0 && csr_index <= 0x3af) { // pmpcfg
-                    pmpcfg[csr_index - 0x3a0] = csr_data;
-                }
-                else if (csr_index >= 0x3b0 && csr_index <= 0x3ef) { // pmpaddr
-                    pmpaddr[csr_index - 0x3b0] = csr_data;
-                }
-                else return false;
+                return false;
         }
         return true;
     }
@@ -658,8 +642,6 @@ private:
     uint64_t        time;
     
     uint64_t        scounteren;
-    uint64_t        pmpcfg[16];
-    uint64_t        pmpaddr[64];
 };
 
 #endif
