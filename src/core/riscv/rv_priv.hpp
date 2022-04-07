@@ -298,9 +298,9 @@ public:
             case csr_sip:
                 break;
             case csr_satp: {
+                satp_def *satp_reg = (satp_def*)&csr_data;
+                if (satp_reg->mode !=0 && satp_reg->mode != 8) satp_reg->mode = 0;
                 satp = csr_data;
-                satp_def *satp = (satp_def*)&satp;
-                assert(satp->mode == 0 || satp->mode == 8);
                 break;
             }
             default:
@@ -536,6 +536,7 @@ public:
             trap_pc = (tvec->base << 2) + ( tvec->mode ? (cause.cause) * 4 : 0);
             next_priv = M_MODE;
         }
+        if (cause.cause == exc_instr_pgfault && tval == trap_pc) assert(false);
     }
 private:
     uint64_t int2index(uint64_t int_mask) { // with priority
