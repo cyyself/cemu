@@ -40,16 +40,16 @@ public:
         if (GPR_index) GPR[GPR_index] = value;
     }
 private:
-    const uint32_t trace_size = 0;
-    std::deque <uint64_t> trace;
+    uint32_t trace_size = riscv_test_u_ecall ? 32 : 0;
+    std::queue <uint64_t> trace;
     rv_systembus &systembus;
     uint64_t pc = 0;
     rv_priv priv;
     int64_t GPR[32];
     void exec(bool meip, bool msip, bool mtip, bool seip) {
         if (trace_size) {
-            trace.push_back(pc);
-            if (trace.size() > trace_size) trace.pop_front();
+            trace.push(pc);
+            while (trace.size() > trace_size) trace.pop();
         }
         bool ri = false;
         bool new_pc = false;
@@ -678,26 +678,30 @@ private:
             case ALU_MULH:
                 result = ((__int128_t)a*(__int128_t)b) >> 64;
                 break;
-            case ALU_MULHU:
-                result = ((__uint128_t)a*(__uint128_t)b) >> 64;
+            case ALU_MULHU: 
+                result = (static_cast<__uint128_t>(static_cast<uint64_t>(a))*static_cast<__uint128_t>(static_cast<uint64_t>(b))) >> 64;
                 break;
             case ALU_MULHSU:
-                result = ((__int128_t)a*(__uint128_t)b) >> 64;
+                result = (static_cast<__int128_t>(a)*static_cast<__uint128_t>(static_cast<uint64_t>(b))) >> 64;
                 break;
             case ALU_DIV:
                 if (b == 0) result = -1;
+                else if (a == LONG_MIN && b == -1) result = LONG_MIN;
                 else result = a / b;
                 break;
             case ALU_DIVU:
                 if (b == 0) result = ULONG_MAX;
+                else if (op_32) result = (uint32_t)a / (uint32_t)b;
                 else result = ((uint64_t)a) / ((uint64_t)b);
                 break;
             case ALU_REM:
                 if (b == 0) result = a;
+                else if (a == LONG_MIN && b == -1) result = 0;
                 else result = a % b;
                 break;
             case ALU_REMU:
                 if (b == 0) result = a;
+                else if (op_32) result = (uint32_t)a % (uint32_t)b;
                 else result = (uint64_t)a % (uint64_t)b;
                 break;
             default:
