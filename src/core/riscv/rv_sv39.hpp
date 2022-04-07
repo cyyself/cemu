@@ -20,6 +20,8 @@ struct sv39_tlb_entry {
     uint8_t  D : 1; // dirty
 };
 
+uint64_t pa_pc;
+
 template <unsigned int nr_tlb_entry = 32>
 class rv_sv39 {
 public:
@@ -61,7 +63,7 @@ public:
         if (!ptw_result) return NULL; // return null when page fault.
         // write back to tlb
         res = &tlb[(random++)%nr_tlb_entry];
-        res->ppa = (((pte.PPN2 << 9) | pte.PPN1) | pte.PPN0) << 12;
+        res->ppa = (((((uint64_t)pte.PPN2 << 9) | (uint64_t)pte.PPN1) << 9) | (uint64_t)pte.PPN0) << 12;
         res->vpa = (page_size == (1<<12)) ? (va - (va % (1<<12))) : (page_size == (1<<21)) ? (va - (va % (1<<21))) : (va - (va % (1<<30)));
         res->asid = satp.asid;
         res->pagesize = (page_size == (1<<12)) ? 1 : (page_size == (1<<21)) ? 2 : 3;
@@ -85,15 +87,36 @@ private:
         sv39_pte pte;
         for (int i=2;i>=0;i--) {
             bool res = bus.pa_read(pt_addr+((i==2?va->vpn_2:(i==1?va->vpn_1:va->vpn_0))*sizeof(sv39_pte)),sizeof(sv39_pte),(uint8_t*)&pte);
-            if (!res) return false;
-            if (!pte.V || (!pte.R && pte.W) || pte.reserved || pte.PBMT) return false;
+            if (!res) {
+                //printf("pt_addr=%lx, vpn=%lx\n",pt_addr,((i==2?va->vpn_2:(i==1?va->vpn_1:va->vpn_0))));
+                //printf("\nerror ptw pa=%lx, level=%d, satp=%lx\n",pt_addr+((i==2?va->vpn_2:(i==1?va->vpn_1:va->vpn_0))*sizeof(sv39_pte)),i,satp);
+                return false;
+            }
+            if (!pte.V || (!pte.R && pte.W) || pte.reserved || pte.PBMT) {
+                /*
+                printf("\nerror ptw. level = %d, vpn = %d, satp=%lx\n",i,((i==2?va->vpn_2:(i==1?va->vpn_1:va->vpn_0))),satp);
+                for (int j=0;j<(1<<9);j++) {
+                    uint64_t tmp_pte = 0;
+                    bus.pa_read(pt_addr+(j*8),sizeof(sv39_pte),(uint8_t*)&tmp_pte);
+                    if (tmp_pte != 0) {
+                        printf("but we found pte at vpn %d\n",j);
+                    }
+                }
+                */
+                return false;
+            }
             if (pte.R || pte.X) { // leaf
                 pte_out = pte;
                 pagesize = (1<<12) << (9*i);
+                uint64_t pa = (((((uint64_t)pte.PPN2 << 9) | (uint64_t)pte.PPN1) << 9) | (uint64_t)pte.PPN0) << 12;
+                if (pa < 0x80000000 || pa >= 0x100000000) {
+                    assert(false);
+                }
+                //printf("ptw ok!\n");
                 return true;
             }
             else { // valid non-leaf
-                pt_addr = (((pte.PPN2 << 9 | pte.PPN1) << 9) | pte.PPN0) << 12;
+                pt_addr = (((((uint64_t)pte.PPN2 << 9) | (uint64_t)pte.PPN1) << 9) | (uint64_t)pte.PPN0) << 12;
             }
         }
         return false;
