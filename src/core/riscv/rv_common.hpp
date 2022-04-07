@@ -379,6 +379,7 @@ struct sv39_pte {
     uint64_t PBMT : 2; // Svpbmt is not implemented, return 0
     uint64_t N : 1;
 };
+static_assert(sizeof(sv39_pte) == 8, "sv39_pte shoule be 8 bytes.");
 // Note: A and D not implement. So use them as permission bit and raise page fault.
 
 struct satp_def {
