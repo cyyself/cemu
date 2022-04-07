@@ -206,20 +206,20 @@ public:
         switch (csr_index) {
             case csr_mstatus: {
                 csr_mstatus_def *nstatus = (csr_mstatus_def*)&csr_data;
-                csr_mstatus_def *status = (csr_mstatus_def*)&status;
-                status->sie = nstatus->sie;
-                status->mie = nstatus->mie;
-                status->spie = nstatus->spie;
-                status->mpie = nstatus->mpie;
-                assert(status->spie != 2);
-                assert(status->mpie != 2);
-                status->spp = nstatus->spp;
-                status->mpp = nstatus->mpp;
-                status->mprv = nstatus->mprv;
-                status->sum = nstatus->sum; // always true
-                status->mxr = nstatus->mxr; // always true
+                csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
+                mstatus->sie = nstatus->sie;
+                mstatus->mie = nstatus->mie;
+                mstatus->spie = nstatus->spie;
+                mstatus->mpie = nstatus->mpie;
+                assert(mstatus->spie != 2);
+                assert(mstatus->mpie != 2);
+                mstatus->spp = nstatus->spp;
+                mstatus->mpp = nstatus->mpp;
+                mstatus->mprv = nstatus->mprv;
+                mstatus->sum = nstatus->sum; // always true
+                mstatus->mxr = nstatus->mxr; // always true
                 // status->tvm = nstatus->tvm; // tvm not supported
-                status->tw = nstatus->tw; // not supported but wfi impl as nop
+                mstatus->tw = nstatus->tw; // not supported but wfi impl as nop
                 // status->tsr = nstatus->tsr; // tsr not supported
                 break;
             }
@@ -261,13 +261,13 @@ public:
                 break;
             case csr_sstatus: {
                 csr_sstatus_def *nstatus = (csr_sstatus_def*)&csr_data;
-                csr_sstatus_def *status = (csr_sstatus_def*)&status;
-                status->sie = nstatus->sie;
-                status->spie = nstatus->spie;
-                assert(status->spie != 2);
-                status->spp = nstatus->spp;
-                status->sum = nstatus->sum;
-                status->mxr = nstatus->mxr;
+                csr_sstatus_def *sstatus = (csr_sstatus_def*)&status;
+                sstatus->sie = nstatus->sie;
+                sstatus->spie = nstatus->spie;
+                assert(sstatus->spie != 2);
+                sstatus->spp = nstatus->spp;
+                sstatus->sum = nstatus->sum;
+                sstatus->mxr = nstatus->mxr;
                 break;
             }
             case csr_sie: {
@@ -506,10 +506,10 @@ public:
         // check delegate to s
         if (cur_priv != M_MODE) {
             if (cause.interrupt) {
-                if (mideleg & cause.cause) trap_to_s = true;
+                if (mideleg & (1 << cause.cause) ) trap_to_s = true;
             }
             else {
-                if (medeleg & cause.cause) trap_to_s = true;
+                if (medeleg & (1 << cause.cause) ) trap_to_s = true;
             }
         }
         if (trap_to_s) {
