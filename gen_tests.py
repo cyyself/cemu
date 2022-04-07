@@ -19,6 +19,8 @@ def make_test():
 
 def run_all():
     for x in file_list:
-        os.system("./cemu {}/{}.bin".format(DST_DIR,x))
+        print("Testing {}: ".format(x),end="",flush=True)
+        os.system("./cemu {}/{}.bin -rvtestu".format(DST_DIR,x))
 
+make_test()
 run_all()
