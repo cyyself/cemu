@@ -348,7 +348,7 @@ public:
             // Note: If the pc misalign but didn't beyond page range, the exception should be raise by core.
             if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_instr_misalign;
             sv39_tlb_entry *tlb_e = sv39.local_tlbe_get(*satp_reg,start_addr);
-            if (!tlb_e || !tlb_e->pagesize || !tlb_e->A || !tlb_e->X) return exc_instr_pgfault;
+            if (!tlb_e || !tlb_e->A || !tlb_e->X) return exc_instr_pgfault;
             if ( (cur_priv == U_MODE && !tlb_e->U) || (cur_priv == S_MODE && tlb_e->U)) return exc_instr_pgfault;
             uint64_t pa = tlb_e->ppa + (start_addr % ( (tlb_e->pagesize==1)?(1<<12):((tlb_e->pagesize==2)?(1<<21):(1<<30))));
             bool pstatus = bus.pa_read(pa,size,buffer);
