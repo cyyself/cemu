@@ -10,13 +10,10 @@
 #include <utility>
 #include <climits>
 
-// TODO: PMP
+// TODO: add pma and check pma
 class rv_systembus {
 public:
     bool pa_read(uint64_t start_addr, uint64_t size, uint8_t *buffer) {
-        if (start_addr <= lr_pa && lr_pa + size <= start_addr + size) {
-            lr_valid = false;
-        }
         auto it = devices.upper_bound(std::make_pair(start_addr,ULONG_MAX));
         if (it == devices.begin()) return false;
         it = std::prev(it);
@@ -49,14 +46,14 @@ public:
         lr_hart = hart_id;
         return pa_read(pa,size,dst);
     }
-    // Note: if pa_write return false, sc_ok shouldn't commit.
-    bool pa_sc(uint64_t pa, uint64_t size, const uint8_t *src, uint64_t hart_id, bool &sc_ok) {
+    // Note: if pa_write return false, sc_fail shouldn't commit.
+    bool pa_sc(uint64_t pa, uint64_t size, const uint8_t *src, uint64_t hart_id, bool &sc_fail) {
         if (!lr_valid || lr_pa != pa || lr_size != size || lr_hart != hart_id) {
-            sc_ok = false;
+            sc_fail = true;
             if (hart_id == lr_hart) lr_valid = false;
-            return false;
+            return true;
         }
-        sc_ok = true;
+        sc_fail = false;
         lr_valid = false;
         return pa_write(pa,size,src);
     }

@@ -10,7 +10,7 @@ for (dirpath, dirnames, filenames) in os.walk(BUILD_DIR):
     for x in filenames:
         if x.endswith(".dump"):
             pass
-        elif x.startswith("rv64ui-p-"):
+        elif x.startswith("rv64ua-p-"):
             file_list.append(x)
 def make_test():
     os.system("mkdir -p {}".format(DST_DIR))

@@ -414,13 +414,13 @@ public:
             else return exc_custom_ok;
         }
     }
-    // Note: if va_sc return != exc_custom_ok, sc_ok shouldn't commit.
-    rv_exc_code va_sc(uint64_t start_addr, uint64_t size, const uint8_t *buffer, bool &sc_ok) {
+    // Note: if va_sc return != exc_custom_ok, sc_fail shouldn't commit.
+    rv_exc_code va_sc(uint64_t start_addr, uint64_t size, const uint8_t *buffer, bool &sc_fail) {
         assert(size == 4 || size == 8);
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&mstatus;
         if ( (cur_priv == M_MODE && !mstatus->mprv) || satp_reg->mode == 0) {
-            bool pstatus = bus.pa_sc(start_addr,size,buffer,hart_id,sc_ok);
+            bool pstatus = bus.pa_sc(start_addr,size,buffer,hart_id,sc_fail);
             if (!pstatus) return exc_store_acc_fault;
             else return exc_custom_ok;
         }
@@ -431,7 +431,7 @@ public:
             if (cur_priv == U_MODE && !tlb_e->U) return exc_store_pgfault;
             if (!mstatus->sum && cur_priv == S_MODE && tlb_e->U) return exc_store_pgfault;
             uint64_t pa = tlb_e->ppa + (start_addr % tlb_e->pagesize);
-            bool pstatus = bus.pa_sc(pa,size,buffer,hart_id,sc_ok);
+            bool pstatus = bus.pa_sc(pa,size,buffer,hart_id,sc_fail);
             if (!pstatus) return exc_store_pgfault;
             else return exc_custom_ok;
         }
