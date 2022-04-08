@@ -10,14 +10,14 @@ struct sv39_tlb_entry {
     uint64_t ppa;
     uint64_t vpa;
     uint16_t asid;
-    uint8_t  pagesize : 2; // 0: invalid, 1: 4KB , 2: 2M, 3: 1G
-    uint8_t  R : 1; // read
-    uint8_t  W : 1; // write
-    uint8_t  X : 1; // execute
-    uint8_t  U : 1; // user
-    uint8_t  G : 1; // global
-    uint8_t  A : 1; // access
-    uint8_t  D : 1; // dirty
+    uint8_t  pagesize; // 0: invalid, 1: 4KB , 2: 2M, 3: 1G
+    bool  R; // read
+    bool  W; // write
+    bool  X; // execute
+    bool  U; // user
+    bool  G; // global
+    bool  A; // access
+    bool  D; // dirty
 };
 
 uint64_t pa_pc;
@@ -36,13 +36,13 @@ public:
                 else {
                     switch (tlb[i].pagesize) {
                         case 1: // 4KB
-                            if (tlb[i].vpa & (-(1ll<<12)) == vaddr) tlb[i].pagesize = 0;
+                            if ((tlb[i].vpa & (-(1ll<<12))) == vaddr) tlb[i].pagesize = 0;
                             break;
                         case 2: // 2MB
-                            if (tlb[i].vpa & (-(1ll<<21)) == vaddr) tlb[i].pagesize = 0;
+                            if ((tlb[i].vpa & (-(1ll<<21))) == vaddr) tlb[i].pagesize = 0;
                             break;
                         case 3: // 1G
-                            if (tlb[i].vpa & (-(1ll<<30)) == vaddr) tlb[i].pagesize = 0;
+                            if ((tlb[i].vpa & (-(1ll<<30))) == vaddr) tlb[i].pagesize = 0;
                         default:
                             break;
                     }
@@ -62,7 +62,8 @@ public:
         bool ptw_result = ptw(satp,va,pte,page_size);
         if (!ptw_result) return NULL; // return null when page fault.
         // write back to tlb
-        res = &tlb[(random++)%nr_tlb_entry];
+        res = &tlb[random];
+        random = (random + 1) % nr_tlb_entry;
         res->ppa = (((((uint64_t)pte.PPN2 << 9) | (uint64_t)pte.PPN1) << 9) | (uint64_t)pte.PPN0) << 12;
         res->vpa = (page_size == (1<<12)) ? (va - (va % (1<<12))) : (page_size == (1<<21)) ? (va - (va % (1<<21))) : (va - (va % (1<<30)));
         res->asid = satp.asid;
@@ -74,6 +75,7 @@ public:
         res->G = pte.G;
         res->A = pte.A;
         res->D = pte.D;
+        if (local_tlb_get(satp,va) != res) assert(false);
         return res;
     }
 private:
@@ -123,13 +125,13 @@ private:
             if (tlb[i].asid == satp.asid || tlb[i].G) {
                 switch (tlb[i].pagesize) {
                     case 1: // 4KB
-                        if (va & (-(1ll<<12)) == tlb[i].vpa) return &tlb[i];
+                        if ((va & (-(1ll<<12))) == tlb[i].vpa) return &tlb[i];
                         break;
                     case 2: // 2MB
-                        if (va & (-(1ll<<21)) == tlb[i].vpa) return &tlb[i];
+                        if ((va & (-(1ll<<21))) == tlb[i].vpa) return &tlb[i];
                         break;
                     case 3: // 1G
-                        if (va & (-(1ll<<30)) == tlb[i].vpa) return &tlb[i];
+                        if ((va & (-(1ll<<30))) == tlb[i].vpa) return &tlb[i];
                     default:
                         break;
                 }

@@ -527,6 +527,7 @@ public:
         assert(!cur_need_trap);
         cur_need_trap = true;
         bool trap_to_s = false;
+        // printf("trap %ld, tval = 0x%lx, pc=0x%lx, mode=%d\n",cause.cause,tval,cur_pc,cur_priv);
         // check delegate to s
         if (cur_priv != M_MODE) {
             if (cause.interrupt) {
