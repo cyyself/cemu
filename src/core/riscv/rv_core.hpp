@@ -39,6 +39,9 @@ public:
         assert(GPR_index >= 0 && GPR_index < 32);
         if (GPR_index) GPR[GPR_index] = value;
     }
+    uint64_t getPC() {
+        return pc;
+    }
 private:
     uint32_t trace_size = riscv_test_u_ecall ? 32 : 0;
     std::queue <uint64_t> trace;

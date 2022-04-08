@@ -20,9 +20,11 @@ public:
             if (start_addr >= 0xbff8 && start_addr + size <= 0xc000) {
                 // mtime
                 memcpy(buffer,((char*)(&mtime))+start_addr-0xbff8,size);
+                // printf("read mtime\n");
             }
             else if (start_addr >= 0x4000 && start_addr + size <= 0x4000 + 8 * nr_hart) {
                 memcpy(buffer,((char*)(&mtimecmp))+start_addr-0x4000,size);
+                // printf("read mtimecmp\n");
             }
             else return false;
         }
@@ -30,6 +32,7 @@ public:
             // msip
             if (start_addr+size <= 4*nr_hart) {
                 memcpy(buffer,((char*)(&msip))+start_addr,size);
+                // printf("read msip\n");
             }
             else return false;
         }
@@ -41,9 +44,11 @@ public:
             if (start_addr >= 0xbff8 && start_addr + size <= 0xc000) {
                 // mtime
                 memcpy(((char*)(&mtime))+start_addr-0xbff8,buffer,size);
+                // printf("write mtime\n");
             }
             else if (start_addr >= 0x4000 && start_addr + size <= 0x4000 + 8 * nr_hart) {
                 memcpy(((char*)(&mtimecmp))+start_addr-0x4000,buffer,size);
+                // printf("write mtimecmp %lx mtime %lx size %d diff %lx\n",mtimecmp[0],mtime,(int)size,mtimecmp[0]-mtime);
             }
             else return false;
         }
@@ -51,6 +56,7 @@ public:
             // msip
             if (start_addr+size <= 4*nr_hart) {
                 memcpy(((char*)(&msip))+start_addr,buffer,size);
+                // printf("write msip %x\n",msip[0]);
                 for (int i=0;i<nr_hart;i++) msip[i] &= 1;
             }
             else return false;
@@ -61,12 +67,12 @@ public:
         mtime ++;
     }
     bool m_s_irq(unsigned int hart_id) { // machine software irq
-        if (hart_id >= nr_hart) return false;
+        if (hart_id >= nr_hart) assert(false);
         else return (msip[hart_id] & 1);
     }
     bool m_t_irq(unsigned int hart_id) { // machine timer irq
-        if (hart_id >= nr_hart) return false;
-        else return mtimecmp[hart_id] > mtime;
+        if (hart_id >= nr_hart) assert(false);
+        else return mtime > mtimecmp[hart_id];
     }
     void set_cmp(uint64_t new_val) {
         mtimecmp = new_val;

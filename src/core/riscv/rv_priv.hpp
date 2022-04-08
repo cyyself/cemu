@@ -264,6 +264,7 @@ public:
                 mtval = csr_data;
                 break;
             case csr_mip:
+                ip = csr_data & m_int_mask;
                 break;
             case csr_sstatus: {
                 csr_sstatus_def *nstatus = (csr_sstatus_def*)&csr_data;
@@ -276,10 +277,9 @@ public:
                 sstatus->mxr = nstatus->mxr;
                 break;
             }
-            case csr_sie: {
-                ie = (ie & (m_int_mask ^ s_int_mask)) | (csr_data & s_int_mask);
+            case csr_sie:
+                ie = (ie & (~s_int_mask)) | (csr_data & s_int_mask);
                 break;
-            }
             case csr_stvec: {
                 csr_tvec_def *tvec = (csr_tvec_def*)&csr_data;
                 assert(tvec->mode <= 1);
@@ -302,6 +302,7 @@ public:
                 scause = csr_data;
                 break;
             case csr_sip:
+                ip = (ip & (~s_int_mask)) | (csr_data & s_int_mask);
                 break;
             case csr_satp: {
                 satp_def *satp_reg = (satp_def*)&csr_data;
@@ -603,10 +604,10 @@ private:
             uint64_t int_index = int2index(int_bits);
             if ((1ul<<int_index) & mideleg) { // delegate to s
                 // Note: If delegate to S but sie is 0, we should not raise trap to M-Mode.
-                if (mstatus->mie && mstatus->sie) final_int_index = int_index;
+                if (mstatus->sie || cur_priv < S_MODE) final_int_index = int_index;
             }
             else {
-                if (mstatus->mie) final_int_index = int_index;
+                if (mstatus->mie || cur_priv < M_MODE) final_int_index = int_index;
             }
         }
         if(final_int_index != exc_custom_ok) raise_trap(csr_cause_def(final_int_index,1));
