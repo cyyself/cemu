@@ -50,12 +50,10 @@ public:
         stval = 0;
         satp = 0;
         scounteren = 0;
-        time = 0;
     }
 
     void pre_exec(bool meip, bool msip, bool mtip, bool seip) {
         mcycle ++;
-        time ++;
         int_def *ip_bits = (int_def*)&ip;
         ip_bits->m_e_ip = meip;
         ip_bits->m_s_ip = msip;
@@ -202,9 +200,6 @@ public:
                 csr_result = minstret;
                 break;
             }
-            case csr_time:
-                csr_result = time;
-                break;
             default:
                 return false;
         }
@@ -385,6 +380,21 @@ public:
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
         if ( (cur_priv == M_MODE && !mstatus->mprv) || satp_reg->mode == 0) {
+            if (riscv_test) {
+                if (start_addr == 0x80001000) {
+                    uint64_t tohost = *(uint64_t*)buffer;
+                    if (tohost == 1) {
+                        if (tohost == 1) {
+                            printf("Test Pass!\n");
+                            exit(0);
+                        }
+                        else {
+                            printf("Failed with value 0x%lx\n",tohost);
+                            exit(1);
+                        }
+                    }
+                }
+            }
             bool pstatus = bus.pa_write(start_addr,size,buffer);
             if (!pstatus) return exc_store_acc_fault;
             else return exc_custom_ok;
@@ -667,8 +677,6 @@ private:
     uint64_t        scause;
     uint64_t        stval;
     uint64_t        satp;
-    
-    uint64_t        time;
     
     uint64_t        scounteren;
 };
