@@ -586,7 +586,7 @@ private:
                         ri = !priv.csr_op_permission_check(csr_index,inst->i_type.rs1 != 0);
                         uint64_t csr_result;
                         if (!ri) ri = !priv.csr_read(csr_index,csr_result);
-                        if (!ri && inst->i_type.rs1) ri = !priv.csr_write(csr_index,csr_result ^ (csr_result & (inst->i_type.rs1)));
+                        if (!ri && inst->i_type.rs1) ri = !priv.csr_write(csr_index,csr_result & (~(inst->i_type.rs1)));
                         if (!ri && inst->i_type.rd) set_GPR(inst->i_type.rd,csr_result);
                         break;
                     }
