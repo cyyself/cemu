@@ -10,6 +10,8 @@
 #include "rv_systembus.hpp"
 #include "rv_sv39.hpp"
 
+extern bool riscv_test;
+
 class rv_priv {
 public:
     rv_priv(uint64_t hart_id, uint64_t &pc, rv_systembus &bus):hart_id(hart_id),cur_pc(pc),bus(bus),sv39(bus) {
@@ -394,6 +396,21 @@ public:
             if (cur_priv == U_MODE && !tlb_e->U) return exc_store_pgfault;
             if (!mstatus->sum && cur_priv == S_MODE && tlb_e->U) return exc_store_pgfault;
             uint64_t pa = tlb_e->ppa + (start_addr % ( (tlb_e->pagesize==1)?(1<<12):((tlb_e->pagesize==2)?(1<<21):(1<<30))));
+            if (riscv_test) {
+                if (pa == 0x80001000) {
+                    uint64_t tohost = *(uint64_t*)buffer;
+                    if (tohost == 1) {
+                        if (tohost == 1) {
+                            printf("Test Pass!\n");
+                            exit(0);
+                        }
+                        else {
+                            printf("Failed with value 0x%lx\n",tohost);
+                            exit(1);
+                        }
+                    }
+                }
+            }
             bool pstatus = bus.pa_write(pa,size,buffer);
             if (!pstatus) return exc_store_pgfault;
             else return exc_custom_ok;
@@ -544,6 +561,9 @@ public:
             next_priv = M_MODE;
         }
         if (cause.cause == exc_instr_pgfault && tval == trap_pc) assert(false);
+    }
+    uint64_t get_cycle() {
+        return mcycle;
     }
 private:
     uint64_t int2index(uint64_t int_mask) { // with priority

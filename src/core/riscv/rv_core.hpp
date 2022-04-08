@@ -8,7 +8,7 @@
 #include "rv_priv.hpp"
 #include <deque>
 
-extern bool riscv_test_u_ecall;
+extern bool riscv_test;
 
 enum mem_err_code {
     MEM_OK = 0,
@@ -43,13 +43,17 @@ public:
         return pc;
     }
 private:
-    uint32_t trace_size = riscv_test_u_ecall ? 32 : 0;
+    uint32_t trace_size = riscv_test ? 32 : 0;
     std::queue <uint64_t> trace;
     rv_systembus &systembus;
     uint64_t pc = 0;
     rv_priv priv;
     int64_t GPR[32];
     void exec(bool meip, bool msip, bool mtip, bool seip) {
+        if (riscv_test && priv.get_cycle() >= 1000000) {
+            printf("Test timeout! at pc 0x%lx\n",pc);
+            exit(1);
+        }
         if (trace_size) {
             trace.push(pc);
             while (trace.size() > trace_size) trace.pop();
@@ -62,7 +66,10 @@ private:
     instr_fetch:
         priv.pre_exec(meip,msip,mtip,seip);
         if (priv.need_trap()) goto exception;
-        if (pc % 4) priv.raise_trap(csr_cause_def(exc_instr_misalign),pc);
+        if (pc % 4) {
+            priv.raise_trap(csr_cause_def(exc_instr_misalign),pc);
+            goto exception;
+        }
         if_exc = priv.va_if(pc,4,(uint8_t*)&cur_instr);
         if (if_exc != exc_custom_ok) {
             priv.raise_trap(csr_cause_def(if_exc),pc);
@@ -480,14 +487,14 @@ private:
                                 if (inst->r_type.rs1 == 0 && inst->r_type.rd == 0) {
                                     switch (rs2) {
                                         case 0: {// ECALL
-                                            if (riscv_test_u_ecall && GPR[17] == 93) {
+                                            if (riscv_test && GPR[17] == 93) {
                                                 if (GPR[17] == 93) {
                                                     if (GPR[10] == 0) {
                                                         printf("Test Pass!\n");
                                                         exit(0);
                                                     }
                                                     else {
-                                                        printf("Failed Testnum %ld\n",GPR[10]);
+                                                        printf("Failed with value 0x%lx\n",GPR[10]);
                                                         exit(1);
                                                     }
                                                 }

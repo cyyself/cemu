@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <thread>
 
-bool riscv_test_u_ecall = false;
+bool riscv_test = false;
 
 void uart_input(uartlite &uart) {
     termios tmp;
@@ -30,7 +30,7 @@ int main(int argc, const char* argv[]) {
 
     const char *load_path = "../opensbi/build/platform/generic/firmware/fw_payload.bin";
     if (argc >= 2) load_path = argv[1];
-    for (int i=1;i<argc;i++) if (strcmp(argv[i],"-rvtestu") == 0) riscv_test_u_ecall = true;
+    for (int i=1;i<argc;i++) if (strcmp(argv[i],"-rvtest") == 0) riscv_test = true;
 
     rv_systembus system_bus;
 
