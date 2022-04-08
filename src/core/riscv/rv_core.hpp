@@ -480,7 +480,7 @@ private:
                                 if (inst->r_type.rs1 == 0 && inst->r_type.rd == 0) {
                                     switch (rs2) {
                                         case 0: {// ECALL
-                                            if (riscv_test_u_ecall) {
+                                            if (riscv_test_u_ecall && GPR[17] == 93) {
                                                 if (GPR[17] == 93) {
                                                     if (GPR[10] == 0) {
                                                         printf("Test Pass!\n");
@@ -586,7 +586,7 @@ private:
                         ri = !priv.csr_op_permission_check(csr_index,inst->i_type.rs1 != 0);
                         uint64_t csr_result;
                         if (!ri) ri = !priv.csr_read(csr_index,csr_result);
-                        if (!ri && inst->i_type.rs1) ri = !priv.csr_write(csr_index,csr_result & (inst->i_type.rs1));
+                        if (!ri && inst->i_type.rs1) ri = !priv.csr_write(csr_index,csr_result ^ (csr_result & (inst->i_type.rs1)));
                         if (!ri && inst->i_type.rd) set_GPR(inst->i_type.rd,csr_result);
                         break;
                     }
