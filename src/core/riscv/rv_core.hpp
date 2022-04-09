@@ -10,14 +10,6 @@
 
 extern bool riscv_test;
 
-enum mem_err_code {
-    MEM_OK = 0,
-    MEM_ERR_LOAD_ACCESS_FAULT   = 5,
-    MEM_ERR_STORE_ACCESS_FAULT  = 7,
-    MEM_ERR_LOAD_PGFAULT        = 13,
-    MEM_ERR_STORE_PGFAULT       = 15,
-};
-
 enum alu_op {
     ALU_ADD, ALU_SUB, ALU_SLL, ALU_SLT, ALU_SLTU, ALU_XOR, ALU_SRL, ALU_SRA, ALU_OR, ALU_AND,
     ALU_MUL, ALU_MULH, ALU_MULHU, ALU_MULHSU, ALU_DIV, ALU_DIVU, ALU_REM, ALU_REMU,
@@ -83,59 +75,74 @@ private:
             case OPCODE_AUIPC:
                 set_GPR(inst->u_type.rd,(((int64_t)inst->u_type.imm_31_12) << 12) + pc);
                 break;
-            case OPCODE_JAL:
-                set_GPR(inst->j_type.rd,pc + 4);
-                pc += (inst->j_type.imm_20 << 20) | (inst->j_type.imm_19_12 << 12) | (inst->j_type.imm_11 << 11) | (inst->j_type.imm_10_1 << 1);
-                new_pc = true;
+            case OPCODE_JAL: {
+                uint64_t npc = pc + ((inst->j_type.imm_20 << 20) | (inst->j_type.imm_19_12 << 12) | (inst->j_type.imm_11 << 11) | (inst->j_type.imm_10_1 << 1));
+                if (npc & 1) npc ^= 1; // we don't need to check.
+                if (npc % 4) priv.raise_trap(csr_cause_def(exc_instr_misalign),npc);
+                else {
+                    set_GPR(inst->j_type.rd,pc + 4);
+                    pc = npc;
+                    new_pc = true;
+                }
                 break;
+            }
             case OPCODE_JALR: {
-                uint64_t pcp4 = pc + 4;
-                pc = GPR[inst->i_type.rs1] + inst->i_type.imm12;
-                set_GPR(inst->j_type.rd,pcp4);
-                new_pc = true;
+                uint64_t npc = GPR[inst->i_type.rs1] + inst->i_type.imm12;
+                if (npc & 1) npc ^= 1;
+                if (npc % 4) priv.raise_trap(csr_cause_def(exc_instr_misalign),npc);
+                else {
+                    set_GPR(inst->j_type.rd,pc + 4);
+                    pc = npc;
+                    new_pc = true;
+                }
                 break;
             }
             case OPCODE_BRANCH: {
                 int64_t offset = (inst->b_type.imm_12 << 12) | (inst->b_type.imm_11 << 11) | (inst->b_type.imm_10_5 << 5) | (inst->b_type.imm_4_1 << 1);
+                uint64_t npc;
                 switch (inst->b_type.funct3) {
                     case FUNCT3_BEQ:
                         if (GPR[inst->b_type.rs1] == GPR[inst->b_type.rs2]) {
-                            pc += offset;
+                            npc = pc + offset;
                             new_pc = true;
                         }
                         break;
                     case FUNCT3_BNE:
                         if (GPR[inst->b_type.rs1] != GPR[inst->b_type.rs2]) {
-                            pc += offset;
+                            npc = pc + offset;
                             new_pc = true;
                         }
                         break;
                     case FUNCT3_BLT:
                         if (GPR[inst->b_type.rs1] < GPR[inst->b_type.rs2]) {
-                            pc += offset;
+                            npc = pc + offset;
                             new_pc = true;
                         }
                         break;
                     case FUNCT3_BGE:
                         if (GPR[inst->b_type.rs1] >= GPR[inst->b_type.rs2]) {
-                            pc += offset;
+                            npc = pc + offset;
                             new_pc = true;
                         }
                         break;
                     case FUNCT3_BLTU:
                         if ((uint64_t)GPR[inst->b_type.rs1] < (uint64_t)GPR[inst->b_type.rs2]) {
-                            pc += offset;
+                            npc = pc + offset;
                             new_pc = true;
                         }
                         break;
                     case FUNCT3_BGEU:
                         if ((uint64_t)GPR[inst->b_type.rs1] >= (uint64_t)GPR[inst->b_type.rs2]) {
-                            pc += offset;
+                            npc = pc + offset;
                             new_pc = true;
                         }
                         break;
                     default:
                         ri = true;
+                }
+                if (new_pc) {
+                    if (npc % 4) priv.raise_trap(csr_cause_def(exc_instr_misalign),npc);
+                    else pc = npc;
                 }
                 break;
             }
