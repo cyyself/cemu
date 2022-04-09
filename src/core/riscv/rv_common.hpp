@@ -231,6 +231,8 @@ enum rv_csr_addr {
 // Machine Counter/Timers
     csr_mcycle  = 0xb00,
     csr_minstret= 0xb02,
+    csr_tselect = 0x7a0,
+    csr_tdata1  = 0x7a1
 };
 
 #define rv_ext(x) (1<<(x-'a'))
