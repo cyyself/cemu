@@ -366,7 +366,7 @@ public:
     rv_exc_code va_read(uint64_t start_addr, uint64_t size, uint8_t *buffer) {
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
-        if ( (cur_priv == M_MODE && (!mstatus->mprv && mstatus->mpp != M_MODE)) || satp_reg->mode == 0) {
+        if ( (cur_priv == M_MODE && (!mstatus->mprv || mstatus->mpp == M_MODE)) || satp_reg->mode == 0) {
             bool pstatus = bus.pa_read(start_addr,size,buffer);
             if (!pstatus) return exc_load_acc_fault;
             else return exc_custom_ok;
@@ -388,7 +388,7 @@ public:
     rv_exc_code va_write(uint64_t start_addr, uint64_t size, const uint8_t *buffer) {
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
-        if ( (cur_priv == M_MODE && (!mstatus->mprv && mstatus->mpp != M_MODE)) || satp_reg->mode == 0) {
+        if ( (cur_priv == M_MODE && (!mstatus->mprv || mstatus->mpp == M_MODE)) || satp_reg->mode == 0) {
             if (riscv_test) {
                 if (start_addr == 0x80001000) {
                     uint64_t tohost = *(uint64_t*)buffer;
@@ -441,7 +441,7 @@ public:
         assert(size == 4 || size == 8);
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
-        if ( (cur_priv == M_MODE && (!mstatus->mprv && mstatus->mpp != M_MODE)) || satp_reg->mode == 0) {
+        if ( (cur_priv == M_MODE && (!mstatus->mprv || mstatus->mpp == M_MODE)) || satp_reg->mode == 0) {
             bool pstatus = bus.pa_lr(start_addr,size,buffer,hart_id);
             if (!pstatus) return exc_store_acc_fault;
             else return exc_custom_ok;
@@ -464,7 +464,7 @@ public:
         assert(size == 4 || size == 8);
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
-        if ( (cur_priv == M_MODE && (!mstatus->mprv && mstatus->mpp != M_MODE)) || satp_reg->mode == 0) {
+        if ( (cur_priv == M_MODE && (!mstatus->mprv || mstatus->mpp == M_MODE)) || satp_reg->mode == 0) {
             bool pstatus = bus.pa_sc(start_addr,size,buffer,hart_id,sc_fail);
             if (!pstatus) return exc_store_acc_fault;
             else return exc_custom_ok;
@@ -486,7 +486,7 @@ public:
         assert(size == 4 || size == 8);
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
-        if ( (cur_priv == M_MODE && (!mstatus->mprv && mstatus->mpp != M_MODE)) || satp_reg->mode == 0) {
+        if ( (cur_priv == M_MODE && (!mstatus->mprv || mstatus->mpp == M_MODE)) || satp_reg->mode == 0) {
             bool pstatus = bus.pa_amo_op(start_addr,size,op,src,dst);
             if (!pstatus) return exc_store_acc_fault;
             else return exc_custom_ok;
