@@ -108,6 +108,8 @@ private:
                 return false;
             }
             if (pte.R || pte.X) { // leaf
+                if (i == 2 && (pte.PPN1 || pte.PPN0)) return false; // Make sure that superpage entries trap when PPN LSBs are set.
+                if (i == 1 && pte.PPN0) return false; // Make sure that superpage entries trap when PPN LSBs are set.
                 pte_out = pte;
                 pagesize = (1<<12) << (9*i);
                 uint64_t pa = (((((uint64_t)pte.PPN2 << 9) | (uint64_t)pte.PPN1) << 9) | (uint64_t)pte.PPN0) << 12;
