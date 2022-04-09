@@ -677,7 +677,7 @@ private:
     uint64_t trap_pc;
     priv_mode next_priv;
     // sv39
-    rv_sv39<128> sv39;
+    rv_sv39<32> sv39;
     // pbus
     rv_systembus &bus;
     // CSRs

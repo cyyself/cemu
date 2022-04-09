@@ -31,6 +31,8 @@ public:
     }
     void sfence_vma(uint64_t vaddr, uint64_t asid) {
         for (int i=0;i<nr_tlb_entry;i++) {
+            tlb[i].pagesize = 0;
+            /*
             if (tlb[i].asid == asid || asid == 0) {
                 if (vaddr == 0) tlb[i].pagesize = 0;
                 else {
@@ -47,7 +49,7 @@ public:
                             break;
                     }
                 }
-            }
+            }*/
         }
     }
     sv39_tlb_entry* local_tlbe_get(satp_def satp, uint64_t va) {

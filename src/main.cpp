@@ -36,7 +36,7 @@ int main(int argc, const char* argv[]) {
 
     uartlite uart;
     rv_clint<1> clint;
-    rv_plic plic;
+    rv_plic <4,2> plic;
     ram dram(4096l*1024l*1024l,load_path);
     assert(system_bus.add_dev(0x2000000,0x10000,&clint));
     assert(system_bus.add_dev(0xc000000,0x4000000,&plic));
@@ -52,7 +52,8 @@ int main(int argc, const char* argv[]) {
     // int uart_history_idx = 0;
     while (1) {
         clint.tick();
-        rv.step(false,clint.m_s_irq(0),clint.m_t_irq(0),uart.irq());
+        plic.update_ext(1,uart.irq());
+        rv.step(plic.get_int(0),clint.m_s_irq(0),clint.m_t_irq(0),plic.get_int(1));
         while (uart.exist_tx()) {
             char c = uart.getc();
             if (c != '\r') std::cout << c;
