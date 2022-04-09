@@ -192,7 +192,7 @@ public:
             case csr_cycle: {
                 csr_counteren_def *mcen = (csr_counteren_def*)&mcounteren;
                 csr_counteren_def *scen = (csr_counteren_def*)&scounteren;
-                if (!mcen->cycle || !scen->cycle) return false;
+                if (cur_priv <= S_MODE && (!mcen->cycle || !scen->cycle)) return false;
                 csr_result = mcycle;
                 break;
             }
@@ -265,6 +265,9 @@ public:
                 break;
             case csr_mip:
                 ip = csr_data & m_int_mask;
+                break;
+            case csr_mcycle:
+                mcycle = csr_data;
                 break;
             case csr_sstatus: {
                 csr_sstatus_def *nstatus = (csr_sstatus_def*)&csr_data;
