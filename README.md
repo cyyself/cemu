@@ -7,7 +7,7 @@ A simple emulator.
 - RV64IMASU with Sv39
   - RISC-V CLINT
   - RISC-V PLIC
-  - Capable for booting Linux
+  - Capable for booting Linux with SMP
 
 ## Devices Support
 
