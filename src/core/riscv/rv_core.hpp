@@ -35,7 +35,7 @@ public:
         return pc;
     }
 private:
-    uint32_t trace_size = riscv_test ? 32 : 0;
+    uint32_t trace_size = riscv_test ? 128 : 0;
     std::queue <uint64_t> trace;
     rv_systembus &systembus;
     uint64_t pc = 0;
@@ -582,7 +582,7 @@ private:
                         ri = !priv.csr_op_permission_check(csr_index,inst->i_type.rs1 != 0);
                         uint64_t csr_result;
                         if (!ri) ri = !priv.csr_read(csr_index,csr_result);
-                        if (!ri && inst->i_type.rs1) ri = !priv.csr_write(csr_index,inst->i_type.rs1);
+                        if (!ri) ri = !priv.csr_write(csr_index,inst->i_type.rs1);
                         if (!ri && inst->i_type.rd) set_GPR(inst->i_type.rd,csr_result);
                         break;
                     }
