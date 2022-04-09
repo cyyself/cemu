@@ -366,7 +366,7 @@ public:
     rv_exc_code va_read(uint64_t start_addr, uint64_t size, uint8_t *buffer) {
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
-        if ( (cur_priv == M_MODE && !mstatus->mprv) || satp_reg->mode == 0) {
+        if ( (cur_priv == M_MODE && (!mstatus->mprv && mstatus->mpp != M_MODE)) || satp_reg->mode == 0) {
             bool pstatus = bus.pa_read(start_addr,size,buffer);
             if (!pstatus) return exc_load_acc_fault;
             else return exc_custom_ok;
@@ -375,8 +375,9 @@ public:
             if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_load_misalign;
             sv39_tlb_entry *tlb_e = sv39.local_tlbe_get(*satp_reg,start_addr);
             if (!tlb_e || !tlb_e->A || (!tlb_e->R && !(mstatus->mxr && !tlb_e->X))) return exc_load_pgfault;
-            if (cur_priv == U_MODE && !tlb_e->U) return exc_load_pgfault;
-            if (!mstatus->sum && cur_priv == S_MODE && tlb_e->U) return exc_load_acc_fault;
+            priv_mode priv = (mstatus->mprv && cur_priv == M_MODE) ? static_cast<priv_mode>(mstatus->mpp) : cur_priv;
+            if (priv == U_MODE && !tlb_e->U) return exc_load_pgfault;
+            if (!mstatus->sum && priv == S_MODE && tlb_e->U) return exc_load_acc_fault;
             uint64_t pa = tlb_e->ppa + (start_addr % ( (tlb_e->pagesize==1)?(1<<12):((tlb_e->pagesize==2)?(1<<21):(1<<30))));
             bool pstatus = bus.pa_read(pa,size,buffer);
             if (!pstatus) return exc_load_acc_fault;
@@ -387,7 +388,7 @@ public:
     rv_exc_code va_write(uint64_t start_addr, uint64_t size, const uint8_t *buffer) {
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
-        if ( (cur_priv == M_MODE && !mstatus->mprv) || satp_reg->mode == 0) {
+        if ( (cur_priv == M_MODE && (!mstatus->mprv && mstatus->mpp != M_MODE)) || satp_reg->mode == 0) {
             if (riscv_test) {
                 if (start_addr == 0x80001000) {
                     uint64_t tohost = *(uint64_t*)buffer;
@@ -411,8 +412,9 @@ public:
             if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_store_misalign;
             sv39_tlb_entry *tlb_e = sv39.local_tlbe_get(*satp_reg,start_addr);
             if (!tlb_e || !tlb_e->A || !tlb_e->D || !tlb_e->W) return exc_store_pgfault;
-            if (cur_priv == U_MODE && !tlb_e->U) return exc_store_pgfault;
-            if (!mstatus->sum && cur_priv == S_MODE && tlb_e->U) return exc_store_pgfault;
+            priv_mode priv = (mstatus->mprv && cur_priv == M_MODE) ? static_cast<priv_mode>(mstatus->mpp) : cur_priv;
+            if (priv == U_MODE && !tlb_e->U) return exc_store_pgfault;
+            if (!mstatus->sum && priv == S_MODE && tlb_e->U) return exc_store_pgfault;
             uint64_t pa = tlb_e->ppa + (start_addr % ( (tlb_e->pagesize==1)?(1<<12):((tlb_e->pagesize==2)?(1<<21):(1<<30))));
             if (riscv_test) {
                 if (pa == 0x80001000) {
@@ -439,7 +441,7 @@ public:
         assert(size == 4 || size == 8);
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
-        if ( (cur_priv == M_MODE && !mstatus->mprv) || satp_reg->mode == 0) {
+        if ( (cur_priv == M_MODE && (!mstatus->mprv && mstatus->mpp != M_MODE)) || satp_reg->mode == 0) {
             bool pstatus = bus.pa_lr(start_addr,size,buffer,hart_id);
             if (!pstatus) return exc_store_acc_fault;
             else return exc_custom_ok;
@@ -448,8 +450,9 @@ public:
             if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_store_misalign;
             sv39_tlb_entry *tlb_e = sv39.local_tlbe_get(*satp_reg,start_addr);
             if (!tlb_e || !tlb_e->A || (!tlb_e->R && !(mstatus->mxr && !tlb_e->X))) return exc_store_pgfault;
-            if (cur_priv == U_MODE && !tlb_e->U) return exc_store_pgfault;
-            if (!mstatus->sum && cur_priv == S_MODE && tlb_e->U) return exc_store_acc_fault;
+            priv_mode priv = (mstatus->mprv && cur_priv == M_MODE) ? static_cast<priv_mode>(mstatus->mpp) : cur_priv;
+            if (priv == U_MODE && !tlb_e->U) return exc_store_pgfault;
+            if (!mstatus->sum && priv == S_MODE && tlb_e->U) return exc_store_acc_fault;
             uint64_t pa = tlb_e->ppa + (start_addr % ( (tlb_e->pagesize==1)?(1<<12):((tlb_e->pagesize==2)?(1<<21):(1<<30))));
             bool pstatus = bus.pa_lr(pa,size,buffer,hart_id);
             if (!pstatus) return exc_store_acc_fault;
@@ -461,7 +464,7 @@ public:
         assert(size == 4 || size == 8);
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
-        if ( (cur_priv == M_MODE && !mstatus->mprv) || satp_reg->mode == 0) {
+        if ( (cur_priv == M_MODE && (!mstatus->mprv && mstatus->mpp != M_MODE)) || satp_reg->mode == 0) {
             bool pstatus = bus.pa_sc(start_addr,size,buffer,hart_id,sc_fail);
             if (!pstatus) return exc_store_acc_fault;
             else return exc_custom_ok;
@@ -470,8 +473,9 @@ public:
             if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_store_misalign;
             sv39_tlb_entry *tlb_e = sv39.local_tlbe_get(*satp_reg,start_addr);
             if (!tlb_e || !tlb_e->A || !tlb_e->D || !tlb_e->W) return exc_store_pgfault;
-            if (cur_priv == U_MODE && !tlb_e->U) return exc_store_pgfault;
-            if (!mstatus->sum && cur_priv == S_MODE && tlb_e->U) return exc_store_pgfault;
+            priv_mode priv = (mstatus->mprv && cur_priv == M_MODE) ? static_cast<priv_mode>(mstatus->mpp) : cur_priv;
+            if (priv == U_MODE && !tlb_e->U) return exc_store_pgfault;
+            if (!mstatus->sum && priv == S_MODE && tlb_e->U) return exc_store_pgfault;
             uint64_t pa = tlb_e->ppa + (start_addr % ( (tlb_e->pagesize==1)?(1<<12):((tlb_e->pagesize==2)?(1<<21):(1<<30))));
             bool pstatus = bus.pa_sc(pa,size,buffer,hart_id,sc_fail);
             if (!pstatus) return exc_store_pgfault;
@@ -482,7 +486,7 @@ public:
         assert(size == 4 || size == 8);
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
-        if ( (cur_priv == M_MODE && !mstatus->mprv) || satp_reg->mode == 0) {
+        if ( (cur_priv == M_MODE && (!mstatus->mprv && mstatus->mpp != M_MODE)) || satp_reg->mode == 0) {
             bool pstatus = bus.pa_amo_op(start_addr,size,op,src,dst);
             if (!pstatus) return exc_store_acc_fault;
             else return exc_custom_ok;
@@ -491,8 +495,9 @@ public:
             if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_store_misalign;
             sv39_tlb_entry *tlb_e = sv39.local_tlbe_get(*satp_reg,start_addr);
             if (!tlb_e || !tlb_e->A || !tlb_e->D || !tlb_e->W) return exc_store_pgfault;
-            if (cur_priv == U_MODE && !tlb_e->U) return exc_store_pgfault;
-            if (!mstatus->sum && cur_priv == S_MODE && tlb_e->U) return exc_store_pgfault;
+            priv_mode priv = (mstatus->mprv && cur_priv == M_MODE) ? static_cast<priv_mode>(mstatus->mpp) : cur_priv;
+            if (priv == U_MODE && !tlb_e->U) return exc_store_pgfault;
+            if (!mstatus->sum && priv == S_MODE && tlb_e->U) return exc_store_pgfault;
             uint64_t pa = tlb_e->ppa + (start_addr % ( (tlb_e->pagesize==1)?(1<<12):((tlb_e->pagesize==2)?(1<<21):(1<<30))));
             bool pstatus = bus.pa_amo_op(pa,size,op,src,dst);
             if (!pstatus) return exc_store_pgfault;
