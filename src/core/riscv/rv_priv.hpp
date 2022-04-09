@@ -183,9 +183,12 @@ public:
             case csr_sip:
                 csr_result = ip & s_int_mask;
                 break;
-            case csr_satp:
+            case csr_satp: {
+                const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
+                if (cur_priv == S_MODE && mstatus->tvm) return false;
                 csr_result = satp;
                 break;
+            }
             case csr_cycle: {
                 csr_counteren_def *mcen = (csr_counteren_def*)&mcounteren;
                 csr_counteren_def *scen = (csr_counteren_def*)&scounteren;
@@ -221,9 +224,9 @@ public:
                 mstatus->mprv = nstatus->mprv;
                 mstatus->sum = nstatus->sum; // always true
                 mstatus->mxr = nstatus->mxr; // always true
-                // status->tvm = nstatus->tvm; // tvm not supported
+                mstatus->tvm = nstatus->tvm;
                 mstatus->tw = nstatus->tw; // not supported but wfi impl as nop
-                // status->tsr = nstatus->tsr; // tsr not supported
+                mstatus->tsr = nstatus->tsr;
                 break;
             }
             case csr_misa: {
@@ -302,6 +305,8 @@ public:
                 ip = (ip & (~s_int_mask)) | (csr_data & s_int_mask);
                 break;
             case csr_satp: {
+                const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
+                if (cur_priv == S_MODE && mstatus->tvm) return false;
                 satp_def *satp_reg = (satp_def*)&csr_data;
                 if (satp_reg->mode !=0 && satp_reg->mode != 8) satp_reg->mode = 0;
                 satp = csr_data;
@@ -517,7 +522,8 @@ public:
         return true;
     }
     bool sret() { // if return false, raise illegal instruction
-        if (cur_priv < S_MODE) return false;
+        const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
+        if (cur_priv < S_MODE || mstatus->tsr) return false;
         csr_mstatus_def *sstatus = (csr_mstatus_def *)&status;
         sstatus->sie = sstatus->spie;
         next_priv = static_cast<priv_mode>(sstatus->spp);
@@ -529,7 +535,8 @@ public:
         return true;
     }
     bool sfence_vma(uint64_t vaddr, uint64_t asid) {
-        if (cur_priv < S_MODE) return false;
+        const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
+        if (cur_priv < S_MODE || (cur_priv == S_MODE && mstatus->tvm)) return false;
         sv39.sfence_vma(vaddr,asid);
         return true;
     }
