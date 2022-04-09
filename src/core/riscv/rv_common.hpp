@@ -308,16 +308,17 @@ struct csr_tvec_def {
 
 struct int_def { // interrupt pending
     uint64_t blank0 : 1;
-    uint64_t s_s_ip : 1;
-    uint64_t m_s_ip : 1;
-    uint64_t blank1 : 2;
-    uint64_t s_t_ip : 1;
+    uint64_t s_s_ip : 1; // 1
+    uint64_t blank1 : 1;
+    uint64_t m_s_ip : 1; // 3
     uint64_t blank2 : 1;
-    uint64_t m_t_ip : 1;
+    uint64_t s_t_ip : 1; // 5
     uint64_t blank3 : 1;
-    uint64_t s_e_ip : 1;
+    uint64_t m_t_ip : 1; // 7
     uint64_t blank4 : 1;
-    uint64_t m_e_ip : 1;
+    uint64_t s_e_ip : 1; // 9
+    uint64_t blank5 : 1;
+    uint64_t m_e_ip : 1; // 11
 };
 
 

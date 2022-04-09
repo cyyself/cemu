@@ -56,8 +56,9 @@ public:
             // msip
             if (start_addr+size <= 4*nr_hart) {
                 memcpy(((char*)(&msip))+start_addr,buffer,size);
-                // printf("write msip %x\n",msip[0]);
                 for (int i=0;i<nr_hart;i++) msip[i] &= 1;
+                // printf("write msip[0] %x\n",msip[0]);
+                // printf("write msip[0] %x\n",msip[1]);
             }
             else return false;
         }
