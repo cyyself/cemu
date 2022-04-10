@@ -2,7 +2,7 @@
 
 ## Step 0. Toolchain
 
-Make sure your toolchain is built with parameter `--with-arch=rv64imac --with-abi=lp64`.
+Make sure your toolchain is built with parameter `--with-arch=rv64ima --with-abi=lp64`.
 
 To build Toolchain, Linux, and Busybox, you can refer to [https://twd2.me/archives/13406](https://twd2.me/archives/13406).
 
