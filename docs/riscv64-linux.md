@@ -28,19 +28,19 @@ CONFIG_RISCV_ISA_C=n
 /dts-v1/;
 
 / {
-	#address-cells = <1>;
-	#size-cells = <1>;
-	compatible = "cyy,cemu";
-	model = "cyy,cemu";
+    #address-cells = <1>;
+    #size-cells = <1>;
+    compatible = "cyy,cemu";
+    model = "cyy,cemu";
 
     chosen {
         bootargs = "earlycon=uartlite,mmio,0x60100000 console=ttyUL0 rdinit=/sbin/init";
         stdout-path = "serial0";
     };
 
-	aliases {
-		serial0 = &uart0;
-	};
+    aliases {
+        serial0 = &uart0;
+    };
 
     uart0: uartlite_0@60100000 {
         compatible = "xlnx,axi-uartlite-1.02.a", "xlnx,xps-uartlite-1.00.a";
@@ -53,113 +53,113 @@ CONFIG_RISCV_ISA_C=n
         xlnx,use-parity = <0>;
     };
 
-	L18: cpus {
-		#address-cells = <1>;
-		#size-cells = <0>;
-		timebase-frequency = <100000000>;
-		L4: cpu@0 {
-			clock-frequency = <0>;
-			compatible = "cyy,cemu-core", "riscv";
-			d-cache-block-size = <64>;
-			d-cache-sets = <64>;
-			d-cache-size = <16384>;
-			d-tlb-sets = <1>;
-			d-tlb-size = <32>;
-			device_type = "cpu";
-			hardware-exec-breakpoint-count = <0>;
-			i-cache-block-size = <64>;
-			i-cache-sets = <64>;
-			i-cache-size = <16384>;
-			i-tlb-sets = <1>;
-			i-tlb-size = <32>;
-			mmu-type = "riscv,sv39";
-			next-level-cache = <&L13>;
-			reg = <0x0>;
-			riscv,isa = "rv64ima";
-			riscv,pmpgranularity = <0>;
-			riscv,pmpregions = <0>;
-			status = "okay";
-			timebase-frequency = <100000000>;
-			tlb-split;
-			L2: interrupt-controller {
-				#interrupt-cells = <1>;
-				compatible = "riscv,cpu-intc";
-				interrupt-controller;
-			};
-		};
-		L7: cpu@1 {
-			clock-frequency = <0>;
-			compatible = "cyy,cemu-core", "riscv";
-			d-cache-block-size = <64>;
-			d-cache-sets = <64>;
-			d-cache-size = <16384>;
-			d-tlb-sets = <1>;
-			d-tlb-size = <32>;
-			device_type = "cpu";
-			hardware-exec-breakpoint-count = <0>;
-			i-cache-block-size = <64>;
-			i-cache-sets = <64>;
-			i-cache-size = <16384>;
-			i-tlb-sets = <1>;
-			i-tlb-size = <32>;
-			mmu-type = "riscv,sv39";
-			next-level-cache = <&L13>;
-			reg = <0x1>;
-			riscv,isa = "rv64ima";
-			riscv,pmpgranularity = <0>;
-			riscv,pmpregions = <0>;
-			status = "okay";
-			timebase-frequency = <100000000>;
-			tlb-split;
-			L5: interrupt-controller {
-				#interrupt-cells = <1>;
-				compatible = "riscv,cpu-intc";
-				interrupt-controller;
-			};
-		};
-	};
-	L13: memory@80000000 {
-		device_type = "memory";
-		reg = <0x80000000 0x80000000>;
-	};
-	L17: soc {
-		#address-cells = <1>;
-		#size-cells = <1>;
-		compatible = "freechips,rocketchip-unknown-soc", "simple-bus";
-		ranges;
-		L9: clint@2000000 {
-			compatible = "riscv,clint0";
-			interrupts-extended = <&L2 3 &L2 7 &L5 3 &L5 7>;
-			reg = <0x2000000 0x10000>;
-			reg-names = "control";
-		};
-		L12: external-interrupts {
-			interrupt-parent = <&L8>;
-			interrupts = <1 2 3 4>;
-		};
-		L8: interrupt-controller@c000000 {
-			#interrupt-cells = <1>;
-			compatible = "riscv,plic0";
-			interrupt-controller;
-			interrupts-extended = <&L2 11 &L2 9 &L5 11 &L5 9>;
-			reg = <0xc000000 0x4000000>;
-			reg-names = "control";
-			riscv,max-priority = <7>;
-			riscv,ndev = <4>;
-		};
-		L14: mmio-port-axi4@60000000 {
-			#address-cells = <1>;
-			#size-cells = <1>;
-			compatible = "simple-bus";
-			ranges = <0x60000000 0x60000000 0x20000000>;
-		};
-		L0: subsystem_pbus_clock {
-			#clock-cells = <0>;
-			clock-frequency = <100000000>;
-			clock-output-names = "subsystem_pbus_clock";
-			compatible = "fixed-clock";
-		};
-	};
+    L18: cpus {
+        #address-cells = <1>;
+        #size-cells = <0>;
+        timebase-frequency = <100000000>;
+        L4: cpu@0 {
+            clock-frequency = <0>;
+            compatible = "cyy,cemu-core", "riscv";
+            d-cache-block-size = <64>;
+            d-cache-sets = <64>;
+            d-cache-size = <16384>;
+            d-tlb-sets = <1>;
+            d-tlb-size = <32>;
+            device_type = "cpu";
+            hardware-exec-breakpoint-count = <0>;
+            i-cache-block-size = <64>;
+            i-cache-sets = <64>;
+            i-cache-size = <16384>;
+            i-tlb-sets = <1>;
+            i-tlb-size = <32>;
+            mmu-type = "riscv,sv39";
+            next-level-cache = <&L13>;
+            reg = <0x0>;
+            riscv,isa = "rv64ima";
+            riscv,pmpgranularity = <0>;
+            riscv,pmpregions = <0>;
+            status = "okay";
+            timebase-frequency = <100000000>;
+            tlb-split;
+            L2: interrupt-controller {
+                #interrupt-cells = <1>;
+                compatible = "riscv,cpu-intc";
+                interrupt-controller;
+            };
+        };
+        L7: cpu@1 {
+            clock-frequency = <0>;
+            compatible = "cyy,cemu-core", "riscv";
+            d-cache-block-size = <64>;
+            d-cache-sets = <64>;
+            d-cache-size = <16384>;
+            d-tlb-sets = <1>;
+            d-tlb-size = <32>;
+            device_type = "cpu";
+            hardware-exec-breakpoint-count = <0>;
+            i-cache-block-size = <64>;
+            i-cache-sets = <64>;
+            i-cache-size = <16384>;
+            i-tlb-sets = <1>;
+            i-tlb-size = <32>;
+            mmu-type = "riscv,sv39";
+            next-level-cache = <&L13>;
+            reg = <0x1>;
+            riscv,isa = "rv64ima";
+            riscv,pmpgranularity = <0>;
+            riscv,pmpregions = <0>;
+            status = "okay";
+            timebase-frequency = <100000000>;
+            tlb-split;
+            L5: interrupt-controller {
+                #interrupt-cells = <1>;
+                compatible = "riscv,cpu-intc";
+                interrupt-controller;
+            };
+        };
+    };
+    L13: memory@80000000 {
+        device_type = "memory";
+        reg = <0x80000000 0x80000000>;
+    };
+    L17: soc {
+        #address-cells = <1>;
+        #size-cells = <1>;
+        compatible = "freechips,rocketchip-unknown-soc", "simple-bus";
+        ranges;
+        L9: clint@2000000 {
+            compatible = "riscv,clint0";
+            interrupts-extended = <&L2 3 &L2 7 &L5 3 &L5 7>;
+            reg = <0x2000000 0x10000>;
+            reg-names = "control";
+        };
+        L12: external-interrupts {
+            interrupt-parent = <&L8>;
+            interrupts = <1 2 3 4>;
+        };
+        L8: interrupt-controller@c000000 {
+            #interrupt-cells = <1>;
+            compatible = "riscv,plic0";
+            interrupt-controller;
+            interrupts-extended = <&L2 11 &L2 9 &L5 11 &L5 9>;
+            reg = <0xc000000 0x4000000>;
+            reg-names = "control";
+            riscv,max-priority = <7>;
+            riscv,ndev = <4>;
+        };
+        L14: mmio-port-axi4@60000000 {
+            #address-cells = <1>;
+            #size-cells = <1>;
+            compatible = "simple-bus";
+            ranges = <0x60000000 0x60000000 0x20000000>;
+        };
+        L0: subsystem_pbus_clock {
+            #clock-cells = <0>;
+            clock-frequency = <100000000>;
+            clock-output-names = "subsystem_pbus_clock";
+            compatible = "fixed-clock";
+        };
+    };
 };
 ```
 
