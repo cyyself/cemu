@@ -27,6 +27,7 @@ public:
     uartlite() {
         memset(&regs,0,sizeof(regs));
         regs.status = SR_TX_FIFO_EMPTY;
+        wait_ack = false;
     }
     bool do_read(unsigned long start_addr, unsigned long size, unsigned char* buffer) {
         std::unique_lock<std::mutex> lock(rx_lock);
@@ -37,6 +38,7 @@ public:
         }
         else regs.status &= ~SR_RX_FIFO_VALID_DATA;
         memcpy(buffer,((char*)(&regs))+start_addr,std::min(size,sizeof(regs)-start_addr));
+        wait_ack = false;
         if (start_addr <= offsetof(uartlite_regs,rx_fifo) && offsetof(uartlite_regs,rx_fifo) <= start_addr + size) {
             if (!rx.empty()) rx.pop();
         }
@@ -69,6 +71,7 @@ public:
         if (!tx.empty()) {
             char res = tx.front();
             tx.pop();
+            if (tx.empty()) wait_ack = true;
             return res;
         }
         else return EOF;
@@ -79,7 +82,7 @@ public:
     }
     bool irq() {
         std::unique_lock<std::mutex> lock(rx_lock);
-        return !rx.empty();
+        return !rx.empty() || wait_ack;
     }
 private:
     uartlite_regs regs;
@@ -87,6 +90,7 @@ private:
     std::queue <char> tx;
     std::mutex rx_lock;
     std::mutex tx_lock;
+    bool wait_ack;
 };
 
 #endif
