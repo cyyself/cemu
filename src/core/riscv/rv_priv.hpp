@@ -348,7 +348,7 @@ public:
     }
     bool csr_op_permission_check(uint16_t csr_index, bool write) {
         if ( ((csr_index >> 8) & 3) > cur_priv) return false;
-        if ( ((csr_index >> 10) & 3 == 3) && write) return false;
+        if ( (((csr_index >> 10) & 3) == 3) && write) return false;
         return true;
     }
     // Note: The core should raise exceptions when return value is not exc_custom_ok.
