@@ -543,7 +543,7 @@ private:
                                 break;
                             }
                             case FUNCT7_SFENCE_VMA:
-                                ri = !priv.sfence_vma(GPR[inst->r_type.rs1],GPR[inst->r_type.rs2]);
+                                ri = !priv.sfence_vma(GPR[inst->r_type.rs1],GPR[inst->r_type.rs2] & 0xffff);
                                 break;
                             default:
                                 ri = true;

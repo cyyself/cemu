@@ -22,6 +22,14 @@ struct sv39_tlb_entry {
 
 uint64_t pa_pc;
 
+/*
+void myassert(bool exp, uint64_t satp, uint64_t va, const char* msg = "") {
+    if (!exp) {
+        printf("TLB Assert False. satp=%lx, va=%lx\n",satp,va);
+        printf("%s\n",msg);
+    }
+}
+*/
 template <unsigned int nr_tlb_entry = 32>
 class rv_sv39 {
 public:
@@ -30,7 +38,6 @@ public:
         for (int i=0;i<nr_tlb_entry;i++) tlb[i].pagesize = 0;
     }
     void sfence_vma(uint64_t vaddr, uint64_t asid) {
-        asid = 0;
         for (int i=0;i<nr_tlb_entry;i++) {
             if (tlb[i].asid == asid || asid == 0) {
                 if (vaddr == 0) tlb[i].pagesize = 0;
@@ -56,7 +63,28 @@ public:
         assert((va_struct->blank == 0b1111111111111111111111111 && (va_struct->vpn_2 >> 8)) || (va_struct->blank == 0 && ((va_struct->vpn_2 >> 8) == 0)));
         // we should raise access fault before call sv39
         sv39_tlb_entry *res = local_tlb_get(satp,va);
-        if (res) return res;
+        if (res) {
+            /*
+            sv39_pte pte2;
+            uint64_t page_size2;
+            bool ptw_result2 = ptw(satp,va,pte2,page_size2);
+            myassert(ptw_result2,*((uint64_t*)&satp),va,"ptw ok");
+            uint64_t ppa = (((((uint64_t)pte2.PPN2 << 9) | (uint64_t)pte2.PPN1) << 9) | (uint64_t)pte2.PPN0) << 12;
+            myassert(ppa == res->ppa,*((uint64_t*)&satp),va,"ppa");
+            myassert(satp.asid == res->asid || pte2.G,*((uint64_t*)&satp),va,"asid");
+            myassert( (8ll<<(res->pagesize * 9)) == page_size2,*((uint64_t*)&satp),va,"page_size");
+            myassert(res->R <= pte2.R,*((uint64_t*)&satp),va,"R");
+            if (res->W != pte2.W) printf("error at asid %lx\n",(uint64_t)satp.asid);
+            // res->W = pte2.W;
+            myassert(res->W <= pte2.W,*((uint64_t*)&satp),va,"W");
+            myassert(res->X <= pte2.X,*((uint64_t*)&satp),va,"X");
+            myassert(res->U <= pte2.U,*((uint64_t*)&satp),va,"U");
+            myassert(res->G == pte2.G,*((uint64_t*)&satp),va,"G");
+            myassert(res->A <= pte2.A,*((uint64_t*)&satp),va,"A");
+            myassert(res->D <= pte2.D,*((uint64_t*)&satp),va,"D");
+             */
+            return res;
+        }
         // slow path, ptw
         sv39_pte pte;
         uint64_t page_size;
