@@ -1,14 +1,21 @@
-# cemu
+# CEMU
 
-A simple emulator.
+A simple full system emulator.
 
 ## ISAs Support
 
-- RV64IMASU with Sv39
+- RISC-V
+  - RV64IMA
+  - Support M-Mode, S-Mode and U-Mode
+  - Sv39 MMU and TLB
   - RISC-V CLINT
   - RISC-V PLIC
-  - Capable for booting Linux with SMP
+  - Capable of booting S-Mode SMP Linux with OpenSBI
 
 ## Devices Support
 
 - Xilinx UARTLite
+
+## Help
+
+[Steps to booting Linux with RISCV-CEMU](docs/riscv64-linux.md)
