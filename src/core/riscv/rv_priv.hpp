@@ -196,13 +196,6 @@ public:
                 csr_result = mcycle;
                 break;
             }
-            case csr_instret: {
-                csr_counteren_def *mcen = (csr_counteren_def*)&mcounteren;
-                csr_counteren_def *scen = (csr_counteren_def*)&scounteren;
-                if (!mcen->instr_retire || !scen->instr_retire) return false;
-                csr_result = minstret;
-                break;
-            }
             case csr_tselect:
                 csr_result = 1;
                 break;
