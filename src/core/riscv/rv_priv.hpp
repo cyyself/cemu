@@ -24,7 +24,6 @@ public:
         next_priv = M_MODE;
         status = 0;
         csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
-        mstatus->mpp = M_MODE;
         mstatus->sxl = 2;
         mstatus->uxl = 2;
         csr_misa_def *isa = (csr_misa_def*)&misa;
