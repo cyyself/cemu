@@ -152,23 +152,33 @@ private:
         return false;
     }
     sv39_tlb_entry* local_tlb_get(satp_def satp, uint64_t va) {
+        sv39_tlb_entry* res = NULL;
         for (int i=0;i<nr_tlb_entry;i++) {
             if (tlb[i].asid == satp.asid || tlb[i].G) {
                 switch (tlb[i].pagesize) {
                     case 1: // 4KB
-                        if ((va & (-(1ll<<12))) == tlb[i].vpa) return &tlb[i];
+                        if ((va & (-(1ll<<12))) == tlb[i].vpa) {
+                            assert(res == NULL);
+                            res = &tlb[i];
+                        }
                         break;
                     case 2: // 2MB
-                        if ((va & (-(1ll<<21))) == tlb[i].vpa) return &tlb[i];
+                        if ((va & (-(1ll<<21))) == tlb[i].vpa) {
+                            assert(res == NULL);
+                            res = &tlb[i];
+                        }
                         break;
                     case 3: // 1G
-                        if ((va & (-(1ll<<30))) == tlb[i].vpa) return &tlb[i];
+                        if ((va & (-(1ll<<30))) == tlb[i].vpa) {
+                            assert(res == NULL);
+                            res = &tlb[i];
+                        }
                     default:
                         break;
                 }
             }
         }
-        return NULL;
+        return res;
     }
 };
 
