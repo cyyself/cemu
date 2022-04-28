@@ -123,6 +123,7 @@ public:
         assert(select_set->status[way_id] == L2_SLAVE_EXCLUSIVE);
         assert(select_set->shared_slave[way_id][slave_id]);
         memcpy(select_set->data[way_id],buffer,sz_cache_line);
+        select_set->dirty.set(way_id);
         select_set->status[way_id] = L2_SHARED;
     }
     // Cached and coherence operations }
