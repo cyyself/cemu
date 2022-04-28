@@ -95,16 +95,17 @@ public:
         select_set->shared_slave[way_id].reset(slave_id);
     }
     
-    void cache_line_fetch(uint64_t start_addr, uint8_t *buffer, int slave_id) {
+    bool cache_line_fetch(uint64_t start_addr, uint8_t *buffer, int slave_id) {
         // after this, the slave got shared status
         assert(start_addr % sz_cache_line == 0);
-        l2_include(start_addr);
+        if (!l2_include(start_addr)) return false;
         l2_return_to_shared(start_addr);
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(start_addr)];
         int way_id;
         assert(select_set->match(start_addr, way_id));
         select_set->shared_slave.set(slave_id);
         memcpy(buffer,select_set->data[way_id],sz_cache_line);
+        return true;
     }
     void cache_line_writeback(uint64_t start_addr, const uint8_t *buffer, int slave_id) { 
         /*
@@ -133,22 +134,24 @@ public:
      */
     bool pa_read_cached(uint64_t start_addr, uint64_t size, uint8_t *buffer) {
         assert(sz_cache_line - (start_addr) % sz_cache_line >= size);
-        l2_include(start_addr);
+        if (!l2_include(start_addr)) return false;
         l2_return_to_shared(start_addr);
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(start_addr)];
         int way_id;
         assert(select_set->match(start_addr, way_id));
         memcpy(buffer,&(select_set->data[start_addr%sz_cache_line]),size);
+        return true;
     }
     bool pa_write_cached(uint64_t start_addr, uint64_t size, const uint8_t *buffer) {
         assert(sz_cache_line - (start_addr) % sz_cache_line >= size);
-        l2_include(start_addr);
+        if (!l2_include(start_addr)) return false;
         l2_return_to_shared(start_addr);
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(start_addr)];
         int way_id;
         assert(select_set->match(start_addr, way_id));
         select_set->dirty.set(way_id);
         memcpy(&(select_set->data[start_addr%sz_cache_line],buffer,size));
+        return true;
     }
     // Cached and non-coherence operations }
     bool add_dev(uint64_t start_addr, uint64_t length, memory *dev) {
@@ -220,7 +223,7 @@ private:
             }
         }
     }
-    void l2_include(uint64_t addr) { // fetch line from dram
+    bool l2_include(uint64_t addr) { // fetch line from dram
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(addr)];
         int way_id;
         if (!(select_set->match(addr, way_id))) {
@@ -229,10 +232,13 @@ private:
                 l2_invalidate( (select_set->tag[way_id] * nr_sets * sz_cache_line) | (get_index(addr) * sz_cache_line) );
                 assert(select_set->status[way_id] == L2_INVALID);
             }
-            assert(pa_read_uncached(addr / sz_cache_line * sz_cache_line, sz_cache_line, select_set->data[way_id]));
+            bool res = pa_read_uncached(addr / sz_cache_line * sz_cache_line, sz_cache_line, select_set->data[way_id]);
+            if (!res) return false;
             select_set->tag[way_id] = get_tag(addr);
             select_set->status[way_id] = L2_OWNED;
+            return true;
         }
+        else return true;
     }
     uint64_t get_index(uint64_t addr) {
         return (addr / sz_cache_line) % nr_sets;
