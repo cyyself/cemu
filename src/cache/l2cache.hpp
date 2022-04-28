@@ -139,7 +139,7 @@ public:
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(start_addr)];
         int way_id;
         assert(select_set->match(start_addr, way_id));
-        memcpy(buffer,&(select_set->data[start_addr%sz_cache_line]),size);
+        memcpy(buffer,&(select_set->data[way_id][start_addr%sz_cache_line]),size);
         return true;
     }
     bool pa_write_cached(uint64_t start_addr, uint64_t size, const uint8_t *buffer) {
@@ -150,7 +150,7 @@ public:
         int way_id;
         assert(select_set->match(start_addr, way_id));
         select_set->dirty.set(way_id);
-        memcpy(&(select_set->data[start_addr%sz_cache_line],buffer,size));
+        memcpy(&(select_set->data[way_id][start_addr%sz_cache_line],buffer,size));
         return true;
     }
     // Cached and non-coherence operations }
