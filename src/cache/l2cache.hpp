@@ -72,7 +72,7 @@ public:
     }
     // Uncached operations }
     // Cached and coherence operations {
-    void acquire_inclusive(uint64_t start_addr, int slave_id) {
+    void acquire_exclusive(uint64_t start_addr, int slave_id) {
         // slave should already acquired shared
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(start_addr)];
         int way_id;
@@ -109,7 +109,7 @@ public:
     }
     void cache_line_writeback(uint64_t start_addr, const uint8_t *buffer, int slave_id) { 
         /*
-            The slave should got inclusive beforce call this function, 
+            The slave should got exclusive beforce call this function, 
             after this, slave status go to shared.
             This happens when another slave request from address which 
             this slave got exclusive or l1 d cache replace.
