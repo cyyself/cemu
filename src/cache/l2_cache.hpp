@@ -12,7 +12,6 @@
 #include <vector>
 #include "co_slave.hpp"
 
-
 enum l2_line_status {
     L2_INVALID, L2_OWNED, L2_SHARED, L2_SLAVE_EXCLUSIVE
 };
@@ -93,6 +92,9 @@ public:
         assert(select_set->match(start_addr, way_id));
         assert(select_set->shared_slave[way_id][slave_id]);
         select_set->shared_slave[way_id].reset(slave_id);
+        if (select_set->shared_slave[way_id].count() == 0) {
+            select_set->status[way_id] = L2_OWNED;
+        }
     }
     
     bool cache_line_fetch(uint64_t start_addr, uint8_t *buffer, int slave_id) {
@@ -104,6 +106,7 @@ public:
         int way_id;
         assert(select_set->match(start_addr, way_id));
         select_set->shared_slave[way_id].set(slave_id);
+        if (select_set->status[way_id] == L2_OWNED) select_set->status[way_id] = L2_SHARED;
         memcpy(buffer,select_set->data[way_id],sz_cache_line);
         return true;
     }
@@ -202,14 +205,14 @@ private:
     void l2_invalidate(uint64_t addr) { // invalite some line from l2
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(addr)];
         int way_id;
-        if (!(select_set->match(addr, way_id))) {
-            return;
-        }
+        assert(select_set->match(addr, way_id));
         switch (select_set->status[way_id]) {
             case L2_SLAVE_EXCLUSIVE: case L2_SHARED: {
+                bool has_slave = false;
                 for (int i=0;i<slaves.size();i++) if (select_set->shared_slave[way_id][i]) {
+                    has_slave = true;
                     slaves[i]->invalidate_shared(addr);
-                    select_set->shared_slave[way_id].reset();
+                    select_set->shared_slave[way_id].reset(i);
                 }
                 select_set->status[way_id] = L2_OWNED;
             } // We don't need break as we need the same operations
