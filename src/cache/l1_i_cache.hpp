@@ -53,7 +53,7 @@ private:
         if (!select_set->match(addr, way_id)) {
             way_id = select_set->replace.get_replace();
             select_set->valid.reset(way_id);
-            uint64_t req_addr = addr % sz_cache_line;
+            uint64_t req_addr = addr - (addr % sz_cache_line);
             if (addr < 0x80000000) { // for MMIO region, we also cached instruction to speedup.
                 for (int i=0;i<(sz_cache_line/8);i++) {
                     bool res = l2->pa_read_uncached(req_addr + (i * 8), 8, &(select_set->data[way_id][i * 8]));
@@ -64,6 +64,7 @@ private:
                 bool res = l2->pa_read_cached(req_addr, sz_cache_line, select_set->data[way_id]);
                 if (!res) return false;
             }
+            select_set->tag[way_id] = get_tag(addr);
             select_set->valid.set(way_id);
             return true;
         }
