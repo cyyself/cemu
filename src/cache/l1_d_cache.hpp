@@ -92,24 +92,30 @@ public:
     }
     // note: check address alignment in the core and raise address misalign exception
     bool pa_lr(uint64_t pa, uint64_t size, uint8_t *dst) {
-        if (pa + size <= 0x80000000) return false;
+        if (pa + size <= 0x80000000) {
+            return false;
+        }
         assert(pa % size == 0);
         lr_pa = pa;
         lr_size = size;
         lr_valid = true;
         bool res = l1_include_exclusive(pa);
-        if (!res) return false;
+        if (!res) {
+            return false;
+        }
         l1_d_cache_set <nr_ways, sz_cache_line, nr_sets> *select_set = &set_data[get_index(pa)];
         int way_id;
         assert(select_set->match(pa, way_id));
         assert(select_set->status[way_id] == L1_EXCLUSIVE || select_set->status[way_id] == L1_MODIFIED);
         select_set->replace.mark_used(way_id);
-        memcpy(dst,&(select_set->data[pa%sz_cache_line]),size);
+        memcpy(dst,&(select_set->data[way_id][pa%sz_cache_line]),size);
         return true;
     }
     // Note: if pa_write return false, sc_fail shouldn't commit.
     bool pa_sc(uint64_t pa, uint64_t size, const uint8_t *src, bool &sc_fail) {
-        if (pa + size <= 0x80000000) return false;
+        if (pa + size <= 0x80000000) {
+            return false;
+        }
         assert(pa % size == 0);
         l1_d_cache_set <nr_ways, sz_cache_line, nr_sets> *select_set = &set_data[get_index(pa)];
         int way_id;
@@ -121,6 +127,7 @@ public:
         sc_fail = false;
         lr_valid = false;
         memcpy(&(select_set->data[way_id][pa%sz_cache_line]), src, size);
+        select_set->status[way_id] = L1_MODIFIED;
         return true;
     }
     // note: core should check whether amoop is valid 
@@ -133,6 +140,7 @@ public:
         int way_id;
         assert(select_set->match(pa, way_id));
         assert(select_set->status[way_id] == L1_EXCLUSIVE || select_set->status[way_id] == L1_MODIFIED);
+        select_set->replace.mark_used(way_id);
         int64_t res;
         if (size == 4) {
             int32_t res32;
@@ -177,6 +185,7 @@ public:
         }
         dst = res;
         memcpy(&(select_set->data[way_id][pa%sz_cache_line]), &to_write, size);
+        select_set->status[way_id] = L1_MODIFIED;
         return true;
     }
 private:

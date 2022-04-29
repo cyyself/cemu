@@ -69,7 +69,7 @@ int main(int argc, const char* argv[]) {
         clint.tick();
         plic.update_ext(1,uart.irq());
         rv_0.step(plic.get_int(0),clint.m_s_irq(0),clint.m_t_irq(0),plic.get_int(1));
-        // rv_1.step(plic.get_int(2),clint.m_s_irq(1),clint.m_t_irq(1),plic.get_int(3));
+        rv_1.step(plic.get_int(2),clint.m_s_irq(1),clint.m_t_irq(1),plic.get_int(3));
         while (uart.exist_tx()) {
             char c = uart.getc();
             if (c != '\r') std::cout << c;
