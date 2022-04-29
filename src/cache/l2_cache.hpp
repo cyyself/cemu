@@ -149,7 +149,7 @@ public:
     bool pa_write_cached(uint64_t start_addr, uint64_t size, const uint8_t *buffer) {
         assert(sz_cache_line - (start_addr) % sz_cache_line >= size);
         if (!l2_include(start_addr)) return false;
-        l2_return_to_shared(start_addr);
+        l2_return_to_own(start_addr);
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(start_addr)];
         int way_id;
         assert(select_set->match(start_addr, way_id));
@@ -202,6 +202,20 @@ private:
             select_set->status[way_id] = L2_SHARED;
         }
     }
+    void l2_return_to_own(uint64_t addr) {
+        l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(addr)];
+        int way_id;
+        assert(select_set->match(addr, way_id));
+        if (select_set->status[way_id] == L2_SLAVE_EXCLUSIVE || select_set->status[way_id] == L2_SHARED) {
+            bool has_slave = false;
+            for (int i=0;i<slaves.size();i++) if (select_set->shared_slave[way_id][i]) {
+                slaves[i]->invalidate_shared(addr);
+                select_set->shared_slave[way_id].reset(i);
+            }
+            assert(has_slave);
+            select_set->status[way_id] = L2_OWNED;
+        }
+    }
     void l2_invalidate(uint64_t addr) { // invalite some line from l2
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(addr)];
         int way_id;
@@ -214,6 +228,7 @@ private:
                     slaves[i]->invalidate_shared(addr);
                     select_set->shared_slave[way_id].reset(i);
                 }
+                assert(has_slave);
                 select_set->status[way_id] = L2_OWNED;
             } // We don't need break as we need the same operations
             case L2_OWNED: {
