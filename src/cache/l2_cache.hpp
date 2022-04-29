@@ -116,7 +116,7 @@ public:
             If a slave wants to write back and invalidate, it should 
             call release_shared function.
          */
-        start_addr %= sz_cache_line;
+        start_addr -= start_addr % sz_cache_line;
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(start_addr)];
         int way_id;
         assert(select_set->match(start_addr, way_id));
