@@ -97,7 +97,7 @@ public:
     
     bool cache_line_fetch(uint64_t start_addr, uint8_t *buffer, int slave_id) {
         // after this, the slave got shared status
-        start_addr %= sz_cache_line;
+        start_addr -= start_addr % sz_cache_line;
         if (!l2_include(start_addr)) return false;
         l2_return_to_shared(start_addr);
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(start_addr)];
