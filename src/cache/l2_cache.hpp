@@ -221,6 +221,7 @@ private:
                     select_set->dirty.reset();
                 }
                 select_set->status[way_id] = L2_INVALID;
+                break;
             }
             default:
                 assert(false);
