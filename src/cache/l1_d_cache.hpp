@@ -2,7 +2,7 @@
 #define L1_D_CACHE
 
 #include "co_slave.hpp"
-#include "l2cache.hpp"
+#include "l2_cache.hpp"
 #include <bitset>
 #include "tree_plru.hpp"
 
@@ -12,7 +12,7 @@ struct l1_d_cache_set {
     uint8_t data[nr_ways][sz_cache_line];
     l1_line_status status[nr_ways];
     tree_plru <4> replace;
-    l1cache_set() {
+    l1_d_cache_set() {
         for (int i=0;i<nr_ways;i++) status[i] = L1_INVALID;
     }
     bool match(uint64_t addr, int &hit_way_id) {
@@ -27,19 +27,16 @@ struct l1_d_cache_set {
     }
 };
 
-template <int nr_ways = 4, int nr_sets = 64, int sz_cache_line = 64>
+template <int nr_ways = 4, int sz_cache_line = 64, int nr_sets = 64>
 class l1_d_cache : public co_slave {
     static_assert(__builtin_popcount(nr_ways) == 1);
     static_assert(__builtin_popcount(nr_sets) == 1);
     static_assert(__builtin_popcount(sz_cache_line) == 1);
 public:
-    l1_d_cache(l2_cache *l2_cache) {
+    l1_d_cache(l2_cache <4, 2048, 64, 32> *l2_cache) {
         slave_id = l2_cache->register_slave(this);
         l2 = l2_cache;
-        set_bits = 0;
         lr_valid = false;
-        while ((1<<set_bits) != nr_sets) set_bits ++;
-        while ((1<<line_bits) != sz_cache_line) line_bits ++;
     }
     void invalidate_exclusive(uint64_t start_addr) { // for l2 req
         lr_valid = false;
@@ -107,7 +104,7 @@ public:
         assert(select_set->match(pa, way_id));
         assert(select_set->status[way_id] == L1_EXCLUSIVE || select_set->status[way_id] == L1_MODIFIED);
         select_set->replace.mark_used(way_id);
-        memcpy(dst,size,&(select_set->data[pa%sz_cache_line]));
+        memcpy(dst,&(select_set->data[pa%sz_cache_line]),size);
         return true;
     }
     // Note: if pa_write return false, sc_fail shouldn't commit.
@@ -116,7 +113,7 @@ public:
         assert(pa % size == 0);
         l1_d_cache_set <nr_ways, sz_cache_line, nr_sets> *select_set = &set_data[get_index(pa)];
         int way_id;
-        if (!lr_valid || lr_pa != pa || lr_size != size || !(select_set->match(pa, way_id) || select_set->status[way_id] == L1_SHARED) {
+        if (!lr_valid || lr_pa != pa || lr_size != size || !(select_set->match(pa, way_id)) || select_set->status[way_id] == L1_SHARED ) {
             sc_fail = true;
             return true;
         }
@@ -143,6 +140,7 @@ public:
             res = res32;
         }
         else {
+            assert(size == 8);
             memcpy(&res, &(select_set->data[way_id][pa%sz_cache_line]), size);
         }
         int64_t to_write;
@@ -183,23 +181,19 @@ public:
     }
 private:
     void l1_invalidate(uint64_t addr) {
-        l1_d_cache_set <nr_ways, sz_cache_line, nr_sets> *select_set = &set_data[get_index(start_addr)];
+        l1_d_cache_set <nr_ways, sz_cache_line, nr_sets> *select_set = &set_data[get_index(addr)];
         int way_id;
         if (!(select_set->match(addr, way_id))) {
             return;
         }
-        switch (select_set->status) {
-            case L1_MODIFIED: {
-                l2->cache_line_writeback(addr, select_set->data[way_id], slave_id);
-            }
-            case L1_EXCLUSIVE: case L1_SHARED: {
-                l2->release_shared(addr, slave_id);
-            }
+        if (select_set->status[way_id] == L1_MODIFIED) {
+            l2->cache_line_writeback(addr, select_set->data[way_id], slave_id);
         }
-        select_set->status = L1_INVALID;
+        l2->release_shared(addr, slave_id);
+        select_set->status[way_id] = L1_INVALID;
     }
     bool l1_include(uint64_t addr) {
-        l1_d_cache_set <nr_ways, sz_cache_line, nr_sets> *select_set = &set_data[get_index(start_addr)];
+        l1_d_cache_set <nr_ways, sz_cache_line, nr_sets> *select_set = &set_data[get_index(addr)];
         int way_id;
         if (!(select_set->match(addr, way_id))) {
             way_id = select_set->replace.get_replace();
@@ -207,7 +201,7 @@ private:
                 l1_invalidate( (select_set->tag[way_id] * nr_sets * sz_cache_line) | (get_index(addr) * sz_cache_line) );
                 assert(select_set->status[way_id] == L1_INVALID);
             }
-            bool res = l2->cache_line_fetch(addr, &(select_set->data[way_id]), slave_id);
+            bool res = l2->cache_line_fetch(addr, select_set->data[way_id], slave_id);
             if (!res) return false;
             select_set->tag[way_id] = get_tag(addr);
             select_set->status[way_id] = L1_SHARED;
@@ -223,7 +217,7 @@ private:
         assert(select_set->match(addr, way_id));
         if (select_set->status[way_id] != L1_EXCLUSIVE && select_set->status[way_id] != L1_MODIFIED) {
             l2->acquire_exclusive(addr, slave_id);
-            select_set->status[way_id] == L1_EXCLUSIVE;
+            select_set->status[way_id] = L1_EXCLUSIVE;
         }
         return true;
     }
@@ -231,9 +225,9 @@ private:
         return (addr / sz_cache_line) % nr_sets;
     }
     uint64_t get_tag(uint64_t addr) {
-        return adr / sz_cache_line / nr_sets;
+        return addr / sz_cache_line / nr_sets;
     }
-    l1_d_cache_set <4, 64, 64> cache_set[nr_sets];
+    l1_d_cache_set <nr_ways, sz_cache_line, nr_sets> set_data[nr_sets];
     l2_cache <4, 2048, 64, 32> *l2;
     int slave_id;
     uint64_t lr_pa;

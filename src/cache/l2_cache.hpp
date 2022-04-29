@@ -83,7 +83,7 @@ public:
             select_set->shared_slave[way_id].reset(i);
         }
         assert(select_set->shared_slave[way_id].count() == 1);
-        select_set->status = L2_SLAVE_EXCLUSIVE;
+        select_set->status[way_id] = L2_SLAVE_EXCLUSIVE;
     }
     void release_shared(uint64_t start_addr, int slave_id) {
         // slave should already acquired shared
@@ -97,13 +97,13 @@ public:
     
     bool cache_line_fetch(uint64_t start_addr, uint8_t *buffer, int slave_id) {
         // after this, the slave got shared status
-        assert(start_addr % sz_cache_line == 0);
+        start_addr %= sz_cache_line;
         if (!l2_include(start_addr)) return false;
         l2_return_to_shared(start_addr);
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(start_addr)];
         int way_id;
         assert(select_set->match(start_addr, way_id));
-        select_set->shared_slave.set(slave_id);
+        select_set->shared_slave[way_id].set(slave_id);
         memcpy(buffer,select_set->data[way_id],sz_cache_line);
         return true;
     }
@@ -116,7 +116,7 @@ public:
             If a slave wants to write back and invalidate, it should 
             call release_shared function.
          */
-        assert(start_addr % sz_cache_line == 0);
+        start_addr %= sz_cache_line;
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(start_addr)];
         int way_id;
         assert(select_set->match(start_addr, way_id));
@@ -184,7 +184,7 @@ private:
     std::map < std::pair<uint64_t ,uint64_t>, memory* > devices;
     l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> set_data[nr_sets];
     std::vector <co_slave*> slaves;
-    std::mt19937 rng();
+    std::mt19937 rng;
 
     void l2_return_to_shared(uint64_t addr) {
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(addr)];
@@ -192,7 +192,7 @@ private:
         if (!(select_set->match(addr, way_id))) {
             return;
         }
-        if (select_set->status == L2_SLAVE_EXCLUSIVE) {
+        if (select_set->status[way_id] == L2_SLAVE_EXCLUSIVE) {
             for (int i=0;i<slaves.size();i++) if (select_set->shared_slave[way_id][i]) {
                 slaves[i]->invalidate_exclusive(addr);
             }
@@ -205,7 +205,7 @@ private:
         if (!(select_set->match(addr, way_id))) {
             return;
         }
-        switch (select_set->status) {
+        switch (select_set->status[way_id]) {
             case L2_SLAVE_EXCLUSIVE: case L2_SHARED: {
                 for (int i=0;i<slaves.size();i++) if (select_set->shared_slave[way_id][i]) {
                     slaves[i]->invalidate_shared(addr);
@@ -222,13 +222,15 @@ private:
                 }
                 select_set->status[way_id] = L2_INVALID;
             }
+            default:
+                assert(false);
         }
     }
     bool l2_include(uint64_t addr) { // fetch line from dram
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(addr)];
         int way_id;
         if (!(select_set->match(addr, way_id))) {
-            way_id = rng() % nr_ways;
+            way_id = ((uint32_t)rng()) % nr_ways;
             if (select_set->status[way_id] != L2_INVALID) {
                 l2_invalidate( (select_set->tag[way_id] * nr_sets * sz_cache_line) | (get_index(addr) * sz_cache_line) );
                 assert(select_set->status[way_id] == L2_INVALID);

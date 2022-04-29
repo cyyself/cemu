@@ -130,6 +130,11 @@ enum funct3_system {
     FUNCT3_CSRRCI   = 0b111
 };
 
+enum funct3_fence {
+    FUNCT3_FENCE    = 0b000,
+    FUNCT3_FENCE_I  = 0b001
+};
+
 enum funct7_priv {
     FUNCT7_ECALL_EBREAK = 0b0000000,
     FUNCT7_SRET_WFI     = 0b0001000,

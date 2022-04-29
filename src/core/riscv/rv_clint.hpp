@@ -65,7 +65,7 @@ public:
         return true;
     }
     void tick() {
-        mtime ++;
+        mtime += 10;
     }
     bool m_s_irq(unsigned int hart_id) { // machine software irq
         if (hart_id >= nr_hart) assert(false);

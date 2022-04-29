@@ -5,6 +5,7 @@
 #include <utility>
 #include "rv_common.hpp"
 #include "rv_systembus.hpp"
+#include "l2_cache.hpp"
 
 struct sv39_tlb_entry {
     uint64_t ppa;
@@ -33,7 +34,7 @@ void myassert(bool exp, uint64_t satp, uint64_t va, const char* msg = "") {
 template <unsigned int nr_tlb_entry = 32>
 class rv_sv39 {
 public:
-    rv_sv39(rv_systembus &bus):bus(bus){
+    rv_sv39(l2_cache<4,2048,64,32> &bus):bus(bus){
         random = 0;
         for (int i=0;i<nr_tlb_entry;i++) tlb[i].pagesize = 0;
     }
@@ -108,7 +109,7 @@ public:
         return res;
     }
 private:
-    rv_systembus &bus;
+    l2_cache <4,2048,64,32> &bus;
     unsigned int random;
     sv39_tlb_entry tlb[nr_tlb_entry];
     bool ptw(satp_def satp, uint64_t va_in, sv39_pte &pte_out, uint64_t &pagesize) {
@@ -117,7 +118,7 @@ private:
         uint64_t pt_addr = ((satp.ppn) << 12);
         sv39_pte pte;
         for (int i=2;i>=0;i--) {
-            bool res = bus.pa_read(pt_addr+((i==2?va->vpn_2:(i==1?va->vpn_1:va->vpn_0))*sizeof(sv39_pte)),sizeof(sv39_pte),(uint8_t*)&pte);
+            bool res = bus.pa_read_cached(pt_addr+((i==2?va->vpn_2:(i==1?va->vpn_1:va->vpn_0))*sizeof(sv39_pte)),sizeof(sv39_pte),(uint8_t*)&pte);
             if (!res) {
                 //printf("pt_addr=%lx, vpn=%lx\n",pt_addr,((i==2?va->vpn_2:(i==1?va->vpn_1:va->vpn_0))));
                 //printf("\nerror ptw pa=%lx, level=%d, satp=%lx\n",pt_addr+((i==2?va->vpn_2:(i==1?va->vpn_1:va->vpn_0))*sizeof(sv39_pte)),i,satp);

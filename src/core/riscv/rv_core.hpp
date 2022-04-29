@@ -4,7 +4,6 @@
 #include <bitset>
 #include "rv_common.hpp"
 #include <assert.h>
-#include "rv_systembus.hpp"
 #include "rv_priv.hpp"
 #include <deque>
 
@@ -18,7 +17,7 @@ enum alu_op {
 
 class rv_core {
 public:
-    rv_core(rv_systembus &systembus, uint8_t hart_id = 0):systembus(systembus),priv(hart_id,pc,systembus) {
+    rv_core(l2_cache <4,2048,64,32> &l2, uint8_t hart_id = 0):priv(hart_id,pc,l2) {
         for (int i=0;i<32;i++) GPR[i] = 0;
     }
     void step(bool meip, bool msip, bool mtip, bool seip) {
@@ -37,7 +36,6 @@ public:
 private:
     uint32_t trace_size = riscv_test ? 128 : 0;
     std::queue <uint64_t> trace;
-    rv_systembus &systembus;
     uint64_t pc = 0;
     rv_priv priv;
     int64_t GPR[32];
@@ -482,8 +480,18 @@ private:
                 }
                 break;
             }
-            case OPCODE_FENCE:
+            case OPCODE_FENCE: {
+                switch (inst->i_type.funct3) {
+                    case FUNCT3_FENCE:
+                        break;
+                    case FUNCT3_FENCE_I:
+                        priv.fence_i();
+                        break;
+                    default:
+                        ri = true;
+                }
                 break;
+            }
             case OPCODE_SYSTEM: {
                 switch (inst->i_type.funct3) {
                     case FUNCT3_PRIV: {

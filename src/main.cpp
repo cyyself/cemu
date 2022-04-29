@@ -11,6 +11,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <thread>
+#include "l2_cache.hpp"
 
 bool riscv_test = false;
 
@@ -41,20 +42,20 @@ int main(int argc, const char* argv[]) {
     if (argc >= 2) load_path = argv[1];
     for (int i=1;i<argc;i++) if (strcmp(argv[i],"-rvtest") == 0) riscv_test = true;
 
-    rv_systembus system_bus;
+    l2_cache <4, 2048, 64, 32> l2;
 
     uartlite uart;
     rv_clint<2> clint;
     rv_plic <4,4> plic;
     ram dram(4096l*1024l*1024l,load_path);
-    assert(system_bus.add_dev(0x2000000,0x10000,&clint));
-    assert(system_bus.add_dev(0xc000000,0x4000000,&plic));
-    assert(system_bus.add_dev(0x60100000,1024*1024,&uart));
-    assert(system_bus.add_dev(0x80000000,2048l*1024l*1024l,&dram));
+    assert(l2.add_dev(0x2000000,0x10000,&clint));
+    assert(l2.add_dev(0xc000000,0x4000000,&plic));
+    assert(l2.add_dev(0x60100000,1024*1024,&uart));
+    assert(l2.add_dev(0x80000000,2048l*1024l*1024l,&dram));
 
-    rv_core rv_0(system_bus,0);
+    rv_core rv_0(l2,0);
     rv_0_ptr = &rv_0;
-    rv_core rv_1(system_bus,1);
+    rv_core rv_1(l2,1);
     rv_1_ptr = &rv_1;
 
     std::thread        uart_input_thread(uart_input,std::ref(uart));
