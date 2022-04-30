@@ -6,6 +6,8 @@
 #include <assert.h>
 #include "rv_priv.hpp"
 #include <deque>
+#include "l2_cache.hpp"
+#include "rv_systembus.hpp"
 
 extern bool riscv_test;
 
@@ -17,7 +19,7 @@ enum alu_op {
 
 class rv_core {
 public:
-    rv_core(l2_cache <4,2048,64,32> &l2, uint8_t hart_id = 0):priv(hart_id,pc,l2) {
+    rv_core(l2_cache <4,2048,64,32> &l2, rv_systembus &bus, uint8_t hart_id = 0):priv(hart_id,pc,l2,bus) {
         for (int i=0;i<32;i++) GPR[i] = 0;
     }
     void step(bool meip, bool msip, bool mtip, bool seip) {

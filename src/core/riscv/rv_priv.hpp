@@ -16,7 +16,7 @@ extern bool riscv_test;
 
 class rv_priv {
 public:
-    rv_priv(uint64_t hart_id, uint64_t &pc, l2_cache<4,2048,64,32> &l2):hart_id(hart_id),cur_pc(pc),l2(l2),sv39(l2),l1i(&l2),l1d(&l2) {
+    rv_priv(uint64_t hart_id, uint64_t &pc, l2_cache<4,2048,64,32> &l2, rv_systembus &bus):hart_id(hart_id),cur_pc(pc),l2(l2),bus(bus),sv39(l2),l1i(&l2),l1d(&l2) {
         reset();
     }
     void reset() {
@@ -349,10 +349,16 @@ public:
     // fetch instruction
     rv_exc_code va_if(uint64_t start_addr, uint64_t size, uint8_t *buffer) {
         const satp_def *satp_reg = (satp_def *)&satp;
+        uint8_t buffer2[10];
         if ( cur_priv == M_MODE || satp_reg->mode == 0) {
             bool pstatus = l1i.pa_if(start_addr, size, buffer);
+            bool pstatus2 = bus.pa_read(start_addr, size, buffer2);
+            assert(pstatus == pstatus2);
             if (!pstatus) return exc_instr_acc_fault;
-            else return exc_custom_ok;
+            else {
+                for (int i=0;i<size;i++) assert(buffer2[i] == buffer[i]);
+                return exc_custom_ok;
+            }
         }
         else {
             // Note: If the pc misalign but didn't beyond page range, the exception should be raise by core.
@@ -362,18 +368,29 @@ public:
             if ( (cur_priv == U_MODE && !tlb_e->U) || (cur_priv == S_MODE && tlb_e->U)) return exc_instr_pgfault;
             uint64_t pa = tlb_e->ppa + (start_addr % ( (tlb_e->pagesize==1)?(1<<12):((tlb_e->pagesize==2)?(1<<21):(1<<30))));
             bool pstatus = l1i.pa_if(pa, size, buffer);
+            bool pstatus2 = bus.pa_read(pa, size, buffer2);
+            assert(pstatus == pstatus2);
             if (!pstatus) return exc_instr_acc_fault;
-            else return exc_custom_ok;
+            else {
+                for (int i=0;i<size;i++) assert(buffer2[i] == buffer[i]);
+                return exc_custom_ok;
+            }
         }
     }
 
     rv_exc_code va_read(uint64_t start_addr, uint64_t size, uint8_t *buffer) {
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
+        uint8_t buffer2[10];
         if ( (cur_priv == M_MODE && (!mstatus->mprv || mstatus->mpp == M_MODE)) || satp_reg->mode == 0) {
             bool pstatus = l1d.pa_read(start_addr,size,buffer);
+            bool pstatus2 = bus.pa_read(start_addr, size, buffer2);
+            assert(pstatus == pstatus2);
             if (!pstatus) return exc_load_acc_fault;
-            else return exc_custom_ok;
+            else {
+                for (int i=0;i<size;i++) assert(buffer2[i] == buffer[i]);
+                return exc_custom_ok;
+            }
         }
         else {
             if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_load_misalign;
@@ -384,8 +401,15 @@ public:
             if (!mstatus->sum && priv == S_MODE && tlb_e->U) return exc_load_acc_fault;
             uint64_t pa = tlb_e->ppa + (start_addr % ( (tlb_e->pagesize==1)?(1<<12):((tlb_e->pagesize==2)?(1<<21):(1<<30))));
             bool pstatus = l1d.pa_read(pa,size,buffer);
+            bool pstatus2 = bus.pa_read(pa, size, buffer2);
+            assert(pstatus == pstatus2);
             if (!pstatus) return exc_load_acc_fault;
-            else return exc_custom_ok;
+            else {
+                for (int i=0;i<size;i++) if (buffer2[i] != buffer[i]) {
+                    printf("error at %x\n",pa);
+                }
+                return exc_custom_ok;
+            }
         }
     }
 
@@ -409,6 +433,8 @@ public:
                 }
             }
             bool pstatus = l1d.pa_write(start_addr,size,buffer);
+            bool pstatus2 = bus.pa_write(start_addr, size, buffer);
+            assert(pstatus == pstatus2);
             if (!pstatus) return exc_store_acc_fault;
             else return exc_custom_ok;
         }
@@ -436,6 +462,8 @@ public:
                 }
             }
             bool pstatus = l1d.pa_write(pa,size,buffer);
+            bool pstatus2 = bus.pa_write(pa,size,buffer);
+            assert(pstatus == pstatus2);
             if (!pstatus) return exc_store_pgfault;
             else return exc_custom_ok;
         }
@@ -445,10 +473,16 @@ public:
         assert(size == 4 || size == 8);
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
+        uint8_t buffer2[10];
         if ( (cur_priv == M_MODE && (!mstatus->mprv || mstatus->mpp == M_MODE)) || satp_reg->mode == 0) {
             bool pstatus = l1d.pa_lr(start_addr,size,buffer);
+            bool pstatus2 = bus.pa_lr(start_addr,size,buffer2,hart_id);
+            assert(pstatus == pstatus2);            
             if (!pstatus) return exc_store_acc_fault;
-            else return exc_custom_ok;
+            else {
+                for (int i=0;i<size;i++) assert(buffer2[i] == buffer[i]);
+                return exc_custom_ok;
+            }
         }
         else {
             if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_store_misalign;
@@ -459,8 +493,13 @@ public:
             if (!mstatus->sum && priv == S_MODE && tlb_e->U) return exc_store_acc_fault;
             uint64_t pa = tlb_e->ppa + (start_addr % ( (tlb_e->pagesize==1)?(1<<12):((tlb_e->pagesize==2)?(1<<21):(1<<30))));
             bool pstatus = l1d.pa_lr(pa,size,buffer);
+            bool pstatus2 = bus.pa_lr(pa,size,buffer2,hart_id);
+            assert(pstatus == pstatus2);
             if (!pstatus) return exc_store_acc_fault;
-            else return exc_custom_ok;
+            else {
+                for (int i=0;i<size;i++) assert(buffer2[i] == buffer[i]);
+                return exc_custom_ok;
+            }
         }
     }
     // Note: if va_sc return != exc_custom_ok, sc_fail shouldn't commit.
@@ -469,9 +508,17 @@ public:
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
         if ( (cur_priv == M_MODE && (!mstatus->mprv || mstatus->mpp == M_MODE)) || satp_reg->mode == 0) {
-            bool pstatus = l1d.pa_sc(start_addr,size,buffer,sc_fail);
+            bool pstatus = l1d.pa_sc(start_addr,size,buffer,sc_fail);            
             if (!pstatus) return exc_store_acc_fault;
-            else return exc_custom_ok;
+            else {
+                if (!sc_fail) {
+                    bool sc_fail2;
+                    bool pstatus2 = bus.pa_sc(start_addr,size,buffer,hart_id,sc_fail2);
+                    assert(pstatus2 == pstatus);
+                    assert(sc_fail == sc_fail2);
+                }
+                return exc_custom_ok;
+            }
         }
         else {
             if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_store_misalign;
@@ -483,17 +530,31 @@ public:
             uint64_t pa = tlb_e->ppa + (start_addr % ( (tlb_e->pagesize==1)?(1<<12):((tlb_e->pagesize==2)?(1<<21):(1<<30))));
             bool pstatus = l1d.pa_sc(pa,size,buffer,sc_fail);
             if (!pstatus) return exc_store_pgfault;
-            else return exc_custom_ok;
+            else {
+                if (!sc_fail) {
+                    bool sc_fail2;
+                    bool pstatus2 = bus.pa_sc(pa,size,buffer,hart_id,sc_fail2);
+                    assert(pstatus2 == pstatus);
+                    assert(sc_fail == sc_fail2);
+                }
+                return exc_custom_ok;
+            }
         }
     }
     rv_exc_code va_amo(uint64_t start_addr, uint64_t size, amo_funct op, int64_t src, int64_t &dst) {
         assert(size == 4 || size == 8);
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
+        int64_t dst2;
         if ( (cur_priv == M_MODE && (!mstatus->mprv || mstatus->mpp == M_MODE)) || satp_reg->mode == 0) {
             bool pstatus = l1d.pa_amo_op(start_addr,size,op,src,dst);
+            bool pstatus2 = bus.pa_amo_op(start_addr,size,op,src,dst2);
+            assert(pstatus == pstatus2);
             if (!pstatus) return exc_store_acc_fault;
-            else return exc_custom_ok;
+            else {
+                assert(dst == dst2);
+                return exc_custom_ok;
+            }
         }
         else {
             if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_store_misalign;
@@ -504,8 +565,13 @@ public:
             if (!mstatus->sum && priv == S_MODE && tlb_e->U) return exc_store_pgfault;
             uint64_t pa = tlb_e->ppa + (start_addr % ( (tlb_e->pagesize==1)?(1<<12):((tlb_e->pagesize==2)?(1<<21):(1<<30))));
             bool pstatus = l1d.pa_amo_op(pa,size,op,src,dst);
+            bool pstatus2 = bus.pa_amo_op(pa,size,op,src,dst2);
+            assert(pstatus == pstatus2);
             if (!pstatus) return exc_store_pgfault;
-            else return exc_custom_ok;
+            else {
+                assert(dst == dst2);
+                return exc_custom_ok;
+            }
         }
     }
     void fence_i() {
@@ -675,6 +741,7 @@ private:
     // sv39
     rv_sv39<32> sv39;
     // pbus
+    rv_systembus &bus;
     l2_cache<4,2048,64,32> &l2;
     // cache
     l1_i_cache <4,64,64> l1i;
