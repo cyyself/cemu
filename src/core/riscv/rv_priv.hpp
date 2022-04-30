@@ -406,7 +406,7 @@ public:
             if (!pstatus) return exc_load_acc_fault;
             else {
                 for (int i=0;i<size;i++) if (buffer2[i] != buffer[i]) {
-                    printf("error at %x\n",pa);
+                    printf("error at %x offset %d read %02x expect %02x\n",pa,i,buffer[i],buffer2[i]);
                 }
                 return exc_custom_ok;
             }
