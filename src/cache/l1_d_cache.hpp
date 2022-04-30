@@ -11,7 +11,7 @@ struct l1_d_cache_set {
     uint64_t tag[nr_ways];
     uint8_t data[nr_ways][sz_cache_line];
     l1_line_status status[nr_ways];
-    tree_plru <4> replace;
+    tree_plru <nr_ways> replace;
     l1_d_cache_set() {
         for (int i=0;i<nr_ways;i++) status[i] = L1_INVALID;
     }
@@ -58,7 +58,6 @@ public:
             l2->cache_line_writeback(start_addr, select_set->data[way_id], slave_id);
         }
         select_set->status[way_id] = L1_INVALID;
-        l2->release_shared(start_addr, slave_id);
     }
     bool pa_read(uint64_t start_addr, uint64_t size, uint8_t *buffer) {
         if (start_addr + size <= 0x80000000) return l2->pa_read_uncached(start_addr,size,buffer);
@@ -78,6 +77,7 @@ public:
         if (start_addr + size <= 0x80000000) return l2->pa_write_uncached(start_addr,size,buffer);
         else {
             assert(sz_cache_line - (start_addr % sz_cache_line) >= size);
+            lr_valid = false;
             bool res = l1_include_exclusive(start_addr);
             if (!res) return false;
             l1_d_cache_set <nr_ways, sz_cache_line, nr_sets> *select_set = &set_data[get_index(start_addr)];
@@ -134,6 +134,7 @@ public:
     bool pa_amo_op(uint64_t pa, uint64_t size, amo_funct op, int64_t src, int64_t &dst) {
         if (pa + size <= 0x80000000) return false;
         assert(pa % size == 0);
+        lr_valid = false;
         bool fetch_res = l1_include_exclusive(pa);
         if (!fetch_res) return false;
         l1_d_cache_set <nr_ways, sz_cache_line, nr_sets> *select_set = &set_data[get_index(pa)];

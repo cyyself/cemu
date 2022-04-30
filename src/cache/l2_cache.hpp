@@ -236,7 +236,7 @@ private:
                 if (select_set->dirty[way_id]) {
                     uint64_t addr_align = (addr / sz_cache_line) * sz_cache_line;
                     assert(pa_write_uncached(addr_align,sz_cache_line,select_set->data[way_id]));
-                    select_set->dirty.reset();
+                    select_set->dirty.reset(way_id);
                 }
                 select_set->status[way_id] = L2_INVALID;
                 break;

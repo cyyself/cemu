@@ -10,7 +10,7 @@ template <int nr_ways = 4, int sz_cache_line = 64, int nr_sets = 64>
 struct l1_i_cache_set {
     uint64_t tag[nr_ways];
     uint8_t data[nr_ways][sz_cache_line];
-    tree_plru <4> replace;
+    tree_plru <nr_ways> replace;
     std::bitset <nr_ways> valid;
     bool match(uint64_t addr, int &hit_way_id) {
         uint64_t search_tag = addr / sz_cache_line / nr_sets;
