@@ -170,7 +170,7 @@ git clone git@github.com:riscv-software-src/opensbi.git
 cd opensbi
 # Save dts to cemu.dts
 dtc cemu.dts -o cemu.dtb
-make CROSS_COMPILE=riscv64-unknown-linux-gnu- PLATFORM=generic FW_FDT_PATH=cemu.dtb FW_PAYLOAD_PATH=../linux/arch/riscv/boot/Image
+make CROSS_COMPILE=riscv64-unknown-linux-gnu- PLATFORM=generic PLATFORM_RISCV_ISA=rv64ima FW_FDT_PATH=cemu.dtb FW_PAYLOAD_PATH=../linux/arch/riscv/boot/Image
 ```
 
 ## Step 4. Write CEMU main and build
