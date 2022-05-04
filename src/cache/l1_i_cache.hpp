@@ -5,6 +5,7 @@
 #include <bitset>
 #include "tree_plru.hpp"
 #include "l2_cache.hpp"
+#include "clock_manager.hpp"
 
 template <int nr_ways = 4, int sz_cache_line = 64, int nr_sets = 64>
 struct l1_i_cache_set {
@@ -23,6 +24,8 @@ struct l1_i_cache_set {
         return false;
     }
 };
+
+extern clock_manager <2> cm;
 
 template <int nr_ways = 4, int sz_cache_line = 64, int nr_sets = 64>
 class l1_i_cache {

@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <thread>
 #include "l2_cache.hpp"
+#include "clock_manager.hpp"
 
 bool riscv_test = false;
 
@@ -35,6 +36,8 @@ void uart_input(uartlite &uart) {
         uart.putc(c);
     }
 }
+
+clock_manager <2> cm;
 
 int main(int argc, const char* argv[]) {
 
@@ -62,7 +65,7 @@ int main(int argc, const char* argv[]) {
 
     rv_0.jump(0x80000000);
     rv_1.jump(0x80000000);
-    rv_1.set_GPR(10,1);
+    rv_1.set_GPR(10,1,0);
     // char uart_history[8] = {0};
     // int uart_history_idx = 0;
     while (1) {

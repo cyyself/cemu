@@ -31,10 +31,10 @@ void myassert(bool exp, uint64_t satp, uint64_t va, const char* msg = "") {
     }
 }
 */
-template <unsigned int nr_tlb_entry = 32>
+template <unsigned int nr_tlb_entry = 32, bool is_data = true>
 class rv_sv39 {
 public:
-    rv_sv39(l2_cache<4,2048,64,32> &bus):bus(bus){
+    rv_sv39(l2_cache<4,2048,64,32> &bus, uint64_t slave_id):bus(bus){
         random = 0;
         for (int i=0;i<nr_tlb_entry;i++) tlb[i].pagesize = 0;
     }
@@ -112,6 +112,7 @@ private:
     l2_cache <4,2048,64,32> &bus;
     unsigned int random;
     sv39_tlb_entry tlb[nr_tlb_entry];
+    uint64_t slave_id;
     bool ptw(satp_def satp, uint64_t va_in, sv39_pte &pte_out, uint64_t &pagesize) {
         sv39_va *va = (sv39_va*)&va_in;
         if (satp.mode != 8) return false; // mode is not sv39

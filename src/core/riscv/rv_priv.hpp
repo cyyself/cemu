@@ -14,9 +14,11 @@
 
 extern bool riscv_test;
 
+extern clock_manager <2> cm;
+
 class rv_priv {
 public:
-    rv_priv(uint64_t hart_id, uint64_t &pc, l2_cache<4,2048,64,32> &l2):hart_id(hart_id),cur_pc(pc),l2(l2),i_tlb(l2),d_tlb(l2),l1i(&l2),l1d(&l2) {
+    rv_priv(uint64_t hart_id, uint64_t &pc, l2_cache<4,2048,64,32> &l2):hart_id(hart_id),cur_pc(pc),l2(l2),i_tlb(l2,hart_id),d_tlb(l2,hart_id),l1i(&l2),l1d(&l2) {
         reset();
     }
     void reset() {
@@ -54,7 +56,7 @@ public:
     }
 
     void pre_exec(bool meip, bool msip, bool mtip, bool seip) {
-        mcycle ++;
+        mcycle = cm.pipe_wb[hart_id];
         int_def *ip_bits = (int_def*)&ip;
         ip_bits->m_e_ip = meip;
         ip_bits->m_s_ip = msip;
@@ -71,7 +73,10 @@ public:
         return trap_pc;
     }
     void post_exec() {
-        if (!cur_need_trap) minstret ++;
+        if (!cur_need_trap) {
+            minstret ++;
+            // if (minstret % 1000000 == 0) printf("hart %d mcycle = %lld minsret = %lld\n",hart_id,mcycle,minstret);
+        }
         cur_need_trap = false;
         csr_mstatus_def *mstatus = (csr_mstatus_def *)&status;
         assert(mstatus->blank0 == 0);
@@ -674,8 +679,8 @@ private:
     uint64_t trap_pc;
     priv_mode next_priv;
     // sv39
-    rv_sv39<8> i_tlb;
-    rv_sv39<8> d_tlb;
+    rv_sv39<8,false> i_tlb;
+    rv_sv39<8,true> d_tlb;
     // pbus
     l2_cache<4,2048,64,32> &l2;
     // cache
