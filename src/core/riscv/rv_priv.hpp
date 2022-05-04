@@ -16,7 +16,7 @@ extern bool riscv_test;
 
 class rv_priv {
 public:
-    rv_priv(uint64_t hart_id, uint64_t &pc, l2_cache<4,2048,64,32> &l2):hart_id(hart_id),cur_pc(pc),l2(l2),sv39(l2),l1i(&l2),l1d(&l2) {
+    rv_priv(uint64_t hart_id, uint64_t &pc, l2_cache<4,2048,64,32> &l2):hart_id(hart_id),cur_pc(pc),l2(l2),i_tlb(l2),d_tlb(l2),l1i(&l2),l1d(&l2) {
         reset();
     }
     void reset() {
@@ -357,7 +357,7 @@ public:
         else {
             // Note: If the pc misalign but didn't beyond page range, the exception should be raise by core.
             if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_instr_misalign;
-            sv39_tlb_entry *tlb_e = sv39.local_tlbe_get(*satp_reg,start_addr);
+            sv39_tlb_entry *tlb_e = i_tlb.local_tlbe_get(*satp_reg,start_addr);
             if (!tlb_e || !tlb_e->A || !tlb_e->X) return exc_instr_pgfault;
             if ( (cur_priv == U_MODE && !tlb_e->U) || (cur_priv == S_MODE && tlb_e->U)) return exc_instr_pgfault;
             uint64_t pa = tlb_e->ppa + (start_addr % ( (tlb_e->pagesize==1)?(1<<12):((tlb_e->pagesize==2)?(1<<21):(1<<30))));
@@ -377,7 +377,7 @@ public:
         }
         else {
             if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_load_misalign;
-            sv39_tlb_entry *tlb_e = sv39.local_tlbe_get(*satp_reg,start_addr);
+            sv39_tlb_entry *tlb_e = d_tlb.local_tlbe_get(*satp_reg,start_addr);
             if (!tlb_e || !tlb_e->A || (!tlb_e->R && !(mstatus->mxr && !tlb_e->X))) return exc_load_pgfault;
             priv_mode priv = (mstatus->mprv && cur_priv == M_MODE) ? static_cast<priv_mode>(mstatus->mpp) : cur_priv;
             if (priv == U_MODE && !tlb_e->U) return exc_load_pgfault;
@@ -414,7 +414,7 @@ public:
         }
         else {
             if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_store_misalign;
-            sv39_tlb_entry *tlb_e = sv39.local_tlbe_get(*satp_reg,start_addr);
+            sv39_tlb_entry *tlb_e = d_tlb.local_tlbe_get(*satp_reg,start_addr);
             if (!tlb_e || !tlb_e->A || !tlb_e->D || !tlb_e->W) return exc_store_pgfault;
             priv_mode priv = (mstatus->mprv && cur_priv == M_MODE) ? static_cast<priv_mode>(mstatus->mpp) : cur_priv;
             if (priv == U_MODE && !tlb_e->U) return exc_store_pgfault;
@@ -452,7 +452,7 @@ public:
         }
         else {
             if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_store_misalign;
-            sv39_tlb_entry *tlb_e = sv39.local_tlbe_get(*satp_reg,start_addr);
+            sv39_tlb_entry *tlb_e = d_tlb.local_tlbe_get(*satp_reg,start_addr);
             if (!tlb_e || !tlb_e->A || (!tlb_e->R && !(mstatus->mxr && !tlb_e->X))) return exc_store_pgfault;
             priv_mode priv = (mstatus->mprv && cur_priv == M_MODE) ? static_cast<priv_mode>(mstatus->mpp) : cur_priv;
             if (priv == U_MODE && !tlb_e->U) return exc_store_pgfault;
@@ -475,7 +475,7 @@ public:
         }
         else {
             if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_store_misalign;
-            sv39_tlb_entry *tlb_e = sv39.local_tlbe_get(*satp_reg,start_addr);
+            sv39_tlb_entry *tlb_e = d_tlb.local_tlbe_get(*satp_reg,start_addr);
             if (!tlb_e || !tlb_e->A || !tlb_e->D || !tlb_e->W) return exc_store_pgfault;
             priv_mode priv = (mstatus->mprv && cur_priv == M_MODE) ? static_cast<priv_mode>(mstatus->mpp) : cur_priv;
             if (priv == U_MODE && !tlb_e->U) return exc_store_pgfault;
@@ -497,7 +497,7 @@ public:
         }
         else {
             if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_store_misalign;
-            sv39_tlb_entry *tlb_e = sv39.local_tlbe_get(*satp_reg,start_addr);
+            sv39_tlb_entry *tlb_e = d_tlb.local_tlbe_get(*satp_reg,start_addr);
             if (!tlb_e || !tlb_e->A || !tlb_e->D || !tlb_e->W) return exc_store_pgfault;
             priv_mode priv = (mstatus->mprv && cur_priv == M_MODE) ? static_cast<priv_mode>(mstatus->mpp) : cur_priv;
             if (priv == U_MODE && !tlb_e->U) return exc_store_pgfault;
@@ -551,7 +551,8 @@ public:
     bool sfence_vma(uint64_t vaddr, uint64_t asid) {
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
         if (cur_priv < S_MODE || (cur_priv == S_MODE && mstatus->tvm)) return false;
-        sv39.sfence_vma(vaddr,asid);
+        i_tlb.sfence_vma(vaddr,asid);
+        d_tlb.sfence_vma(vaddr,asid);
         return true;
     }
     void raise_trap(csr_cause_def cause, uint64_t tval = 0) {
@@ -673,7 +674,8 @@ private:
     uint64_t trap_pc;
     priv_mode next_priv;
     // sv39
-    rv_sv39<32> sv39;
+    rv_sv39<8> i_tlb;
+    rv_sv39<8> d_tlb;
     // pbus
     l2_cache<4,2048,64,32> &l2;
     // cache
