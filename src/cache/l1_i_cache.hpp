@@ -33,7 +33,7 @@ class l1_i_cache {
     static_assert(__builtin_popcount(nr_sets) == 1);
     static_assert(__builtin_popcount(sz_cache_line) == 1);
 public:
-    l1_i_cache(l2_cache <4, 2048, 64, 32> *l2_cache) {
+    l1_i_cache(l2_cache <4, 2048, 64, 32> *l2_cache, uint64_t hart_id):hart_id(hart_id) {
         l2 = l2_cache;
     }
     void fence_i() {
@@ -50,6 +50,7 @@ public:
         return true;
     }
 private:
+    uint64_t hart_id;
     bool l1_include(uint64_t addr) {
         l1_i_cache_set <nr_ways, sz_cache_line, nr_sets> *select_set = &set_data[get_index(addr)];
         int way_id;
@@ -57,14 +58,17 @@ private:
             way_id = select_set->replace.get_replace();
             select_set->valid.reset(way_id);
             uint64_t req_addr = addr - (addr % sz_cache_line);
+            cm.sync_with_l2(cm.pipe_if[hart_id]);
             if (addr < 0x80000000) { // for MMIO region, we also cached instruction to speedup.
                 for (int i=0;i<(sz_cache_line/8);i++) {
                     bool res = l2->pa_read_uncached(req_addr + (i * 8), 8, &(select_set->data[way_id][i * 8]));
+                    cm.sync_with_l2(cm.pipe_if[hart_id]);
                     if (!res) return false;
                 }
             }
             else {
                 bool res = l2->pa_read_cached(req_addr, sz_cache_line, select_set->data[way_id]);
+                cm.sync_with_l2(cm.pipe_if[hart_id]);
                 if (!res) return false;
             }
             select_set->tag[way_id] = get_tag(addr);

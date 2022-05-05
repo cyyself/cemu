@@ -18,7 +18,7 @@ extern clock_manager <2> cm;
 
 class rv_priv {
 public:
-    rv_priv(uint64_t hart_id, uint64_t &pc, l2_cache<4,2048,64,32> &l2):hart_id(hart_id),cur_pc(pc),l2(l2),i_tlb(l2,hart_id),d_tlb(l2,hart_id),l1i(&l2),l1d(&l2) {
+    rv_priv(uint64_t hart_id, uint64_t &pc, l2_cache<4,2048,64,32> &l2):hart_id(hart_id),cur_pc(pc),l2(l2),i_tlb(l2,hart_id),d_tlb(l2,hart_id),l1i(&l2,hart_id),l1d(&l2,hart_id) {
         reset();
     }
     void reset() {
@@ -75,7 +75,7 @@ public:
     void post_exec() {
         if (!cur_need_trap) {
             minstret ++;
-            // if (minstret % 1000000 == 0) printf("hart %d mcycle = %lld minsret = %lld\n",hart_id,mcycle,minstret);
+            if (minstret % 1000000 == 0) printf("hart %d mcycle = %lld minsret = %lld\n",hart_id,mcycle,minstret);
         }
         cur_need_trap = false;
         csr_mstatus_def *mstatus = (csr_mstatus_def *)&status;

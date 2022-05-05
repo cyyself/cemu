@@ -11,6 +11,7 @@
 #include <random>
 #include <vector>
 #include "co_slave.hpp"
+#include "clock_manager.hpp"
 
 enum l2_line_status {
     L2_INVALID, L2_OWNED, L2_SHARED, L2_SLAVE_EXCLUSIVE
@@ -38,9 +39,17 @@ struct l2cache_set {
     }
 };
 
+extern clock_manager <2> cm;
+
 template <int nr_ways = 4, int nr_sets = 2048, int sz_cache_line = 64, int nr_max_slave = 32>
 class l2_cache {
 public:
+    const int uncached_mmio_read_ticks = 10;
+    const int uncached_mmio_write_ticks = 10;
+    const int dram_read_ticks = 30;
+    const int dram_write_ticks = 30;
+    const int cacheline_fetch_ticks = 10;
+    const int cacheline_write_ticks = 10;
     // Uncached operations {
     /*
         Warn: uncached operation will not check existing cache status, 
@@ -52,6 +61,8 @@ public:
         if (it == devices.begin()) return false;
         it = std::prev(it);
         uint64_t end_addr = start_addr + size;
+        if (start_addr < 0x80000000) cm.l2 += uncached_mmio_read_ticks;
+        else cm.l2 += dram_read_ticks;
         if (it->first.first <= start_addr && end_addr <= it->first.second) {
             uint64_t dev_size = it->first.second - it->first.first;
             return it->second->do_read(start_addr % dev_size, size, buffer);
@@ -63,6 +74,8 @@ public:
         if (it == devices.begin()) return false;
         it = std::prev(it);
         uint64_t end_addr = start_addr + size;
+        if (start_addr < 0x80000000) cm.l2 += uncached_mmio_write_ticks;
+        else cm.l2 += dram_write_ticks;
         if (it->first.first <= start_addr && end_addr <= it->first.second) {
             uint64_t dev_size = it->first.second - it->first.first;
             return it->second->do_write(start_addr % dev_size, size, buffer);
@@ -77,7 +90,9 @@ public:
         int way_id;
         assert(select_set->match(start_addr, way_id));
         assert(select_set->shared_slave[way_id][slave_id]);
+        cm.l2 += 3; // req time
         for (int i=0;i<slaves.size();i++) if (i != slave_id && select_set->shared_slave[way_id][i]) {
+            cm.l2 += 3; // req time
             slaves[i]->invalidate_shared(start_addr);
             select_set->shared_slave[way_id].reset(i);
         }
@@ -95,6 +110,7 @@ public:
         if (select_set->shared_slave[way_id].count() == 0) {
             select_set->status[way_id] = L2_OWNED;
         }
+        cm.l2 += 3;
     }
     
     bool cache_line_fetch(uint64_t start_addr, uint8_t *buffer, int slave_id) {
@@ -108,6 +124,7 @@ public:
         select_set->shared_slave[way_id].set(slave_id);
         if (select_set->status[way_id] == L2_OWNED) select_set->status[way_id] = L2_SHARED;
         memcpy(buffer,select_set->data[way_id],sz_cache_line);
+        cm.l2 += cacheline_fetch_ticks;
         return true;
     }
     void cache_line_writeback(uint64_t start_addr, const uint8_t *buffer, int slave_id) { 
@@ -126,6 +143,7 @@ public:
         assert(select_set->status[way_id] == L2_SLAVE_EXCLUSIVE);
         assert(select_set->shared_slave[way_id][slave_id]);
         memcpy(select_set->data[way_id],buffer,sz_cache_line);
+        cm.l2 += cacheline_write_ticks;
         select_set->dirty.set(way_id);
         select_set->status[way_id] = L2_SHARED;
     }
@@ -144,6 +162,7 @@ public:
         int way_id;
         assert(select_set->match(start_addr, way_id));
         memcpy(buffer,&(select_set->data[way_id][start_addr%sz_cache_line]),size);
+        cm.l2 += 2 + (size + 7) / 8;
         return true;
     }
     bool pa_write_cached(uint64_t start_addr, uint64_t size, const uint8_t *buffer) {
@@ -155,6 +174,7 @@ public:
         assert(select_set->match(start_addr, way_id));
         select_set->dirty.set(way_id);
         memcpy(&(select_set->data[way_id][start_addr%sz_cache_line],buffer,size));
+        cm.l2 += 2 + (size + 7) / 8;
         return true;
     }
     // Cached and non-coherence operations }

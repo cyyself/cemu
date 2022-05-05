@@ -69,10 +69,10 @@ int main(int argc, const char* argv[]) {
     // char uart_history[8] = {0};
     // int uart_history_idx = 0;
     while (1) {
-        clint.tick();
+        clint.set_time(cm.cur_time());
         plic.update_ext(1,uart.irq());
-        rv_0.step(plic.get_int(0),clint.m_s_irq(0),clint.m_t_irq(0),plic.get_int(1));
-        rv_1.step(plic.get_int(2),clint.m_s_irq(1),clint.m_t_irq(1),plic.get_int(3));
+        if (cm.pipe_wb[0] < cm.pipe_wb[1]) rv_0.step(plic.get_int(0),clint.m_s_irq(0),clint.m_t_irq(0),plic.get_int(1));
+        else rv_1.step(plic.get_int(2),clint.m_s_irq(1),clint.m_t_irq(1),plic.get_int(3));
         while (uart.exist_tx()) {
             char c = uart.getc();
             if (c != '\r') std::cout << c;

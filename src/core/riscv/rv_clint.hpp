@@ -67,6 +67,9 @@ public:
     void tick() {
         mtime += 10;
     }
+    void set_time(uint64_t x) {
+        mtime = x;
+    }
     bool m_s_irq(unsigned int hart_id) { // machine software irq
         if (hart_id >= nr_hart) assert(false);
         else return (msip[hart_id] & 1);
