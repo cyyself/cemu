@@ -730,6 +730,7 @@ private:
         }
         if (priv.need_trap()) {
             pc = priv.get_trap_pc();
+            cm.pipe_mem[hart_id] += 1;
             flush_pipe();
         }
         else if (!new_pc) pc = pc + 4;
