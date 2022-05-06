@@ -64,6 +64,7 @@ int main(int argc, const char* argv[]) {
     rv_1.set_GPR(10,1);
     // char uart_history[8] = {0};
     // int uart_history_idx = 0;
+    bool delay_cr = false;
     while (1) {
         clint.tick();
         plic.update_ext(1,uart.irq());
@@ -71,12 +72,17 @@ int main(int argc, const char* argv[]) {
         rv_1.step(plic.get_int(2),clint.m_s_irq(1),clint.m_t_irq(1),plic.get_int(3));
         while (uart.exist_tx()) {
             char c = uart.getc();
-            if (c != '\r') std::cout << c;
+            if (c == '\r') delay_cr = true;
+            else {
+                if (delay_cr && c != '\n') std::cout << "\r" << c;
+                else std::cout << c;
+                std::cout.flush();
+                delay_cr = false;
+            }
             // uart_history[uart_history_idx] = c;
             // uart_history_idx = (uart_history_idx + 1) % 8;
         }
         //printf("%lx %lx\n",rv_0.getPC(),rv_1.getPC());
-        std::cout.flush();
     }
     return 0;
 }
