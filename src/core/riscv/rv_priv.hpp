@@ -75,7 +75,7 @@ public:
     void post_exec() {
         if (!cur_need_trap) {
             minstret ++;
-            if (minstret % 1000000 == 0) printf("hart %d mcycle = %lld minsret = %lld\n",hart_id,mcycle,minstret);
+            // if (minstret % 1000000 == 0) printf("hart %d mcycle = %lld minsret = %lld\n",hart_id,mcycle,minstret);
         }
         cur_need_trap = false;
         csr_mstatus_def *mstatus = (csr_mstatus_def *)&status;

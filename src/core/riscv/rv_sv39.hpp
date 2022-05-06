@@ -91,6 +91,8 @@ public:
         uint64_t page_size;
         bool ptw_result = ptw(satp,va,pte,page_size);
         if (!ptw_result) return NULL; // return null when page fault.
+        if (is_data) cm.pipe_mem[slave_id] += 1;
+        else cm.pipe_if[slave_id] += 1;
         // write back to tlb
         res = &tlb[random];
         random = (random + 1) % nr_tlb_entry;
@@ -119,7 +121,9 @@ private:
         uint64_t pt_addr = ((satp.ppn) << 12);
         sv39_pte pte;
         for (int i=2;i>=0;i--) {
+            cm.sync_with_l2(is_data?cm.pipe_mem[slave_id]:cm.pipe_if[slave_id]);
             bool res = bus.pa_read_cached(pt_addr+((i==2?va->vpn_2:(i==1?va->vpn_1:va->vpn_0))*sizeof(sv39_pte)),sizeof(sv39_pte),(uint8_t*)&pte);
+            cm.sync_with_l2(is_data?cm.pipe_mem[slave_id]:cm.pipe_if[slave_id]);
             if (!res) {
                 //printf("pt_addr=%lx, vpn=%lx\n",pt_addr,((i==2?va->vpn_2:(i==1?va->vpn_1:va->vpn_0))));
                 //printf("\nerror ptw pa=%lx, level=%d, satp=%lx\n",pt_addr+((i==2?va->vpn_2:(i==1?va->vpn_1:va->vpn_0))*sizeof(sv39_pte)),i,satp);
