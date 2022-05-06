@@ -6,8 +6,9 @@
 #include <bitset>
 #include "tree_plru.hpp"
 #include "clock_manager.hpp"
+#include "cache_uni_def.hpp"
 
-template <int nr_ways = 4, int sz_cache_line = 64, int nr_sets = 64>
+template <int nr_ways = L1D_WAYS, int sz_cache_line = L1D_SZLINE, int nr_sets = L1D_NR_SETS>
 struct l1_d_cache_set {
     uint64_t tag[nr_ways];
     uint8_t data[nr_ways][sz_cache_line];
@@ -30,13 +31,13 @@ struct l1_d_cache_set {
 
 extern clock_manager <2> cm;
 
-template <int nr_ways = 4, int sz_cache_line = 64, int nr_sets = 64>
+template <int nr_ways = L1D_WAYS, int sz_cache_line = L1D_SZLINE, int nr_sets = L1D_NR_SETS>
 class l1_d_cache : public co_slave {
     static_assert(__builtin_popcount(nr_ways) == 1);
     static_assert(__builtin_popcount(nr_sets) == 1);
     static_assert(__builtin_popcount(sz_cache_line) == 1);
 public:
-    l1_d_cache(l2_cache <4, 2048, 64, 32> *l2_cache, uint64_t hart_id):hart_id(hart_id) {
+    l1_d_cache(l2_cache <L2_WAYS, L2_NR_SETS, L2_SZLINE, 32> *l2_cache, uint64_t hart_id):hart_id(hart_id) {
         slave_id = l2_cache->register_slave(this);
         l2 = l2_cache;
         lr_valid = false;
@@ -287,7 +288,7 @@ private:
         return addr / sz_cache_line / nr_sets;
     }
     l1_d_cache_set <nr_ways, sz_cache_line, nr_sets> set_data[nr_sets];
-    l2_cache <4, 2048, 64, 32> *l2;
+    l2_cache <L2_WAYS, L2_NR_SETS, L2_SZLINE, 32> *l2;
     int slave_id;
     uint64_t lr_pa;
     uint64_t lr_size;

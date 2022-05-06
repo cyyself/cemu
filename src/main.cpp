@@ -13,6 +13,7 @@
 #include <thread>
 #include "l2_cache.hpp"
 #include "clock_manager.hpp"
+#include "cache_uni_def.hpp"
 
 bool riscv_test = false;
 
@@ -45,7 +46,7 @@ int main(int argc, const char* argv[]) {
     if (argc >= 2) load_path = argv[1];
     for (int i=1;i<argc;i++) if (strcmp(argv[i],"-rvtest") == 0) riscv_test = true;
 
-    l2_cache <4, 2048, 64, 32> l2;
+    l2_cache <L2_WAYS, L2_NR_SETS, L2_SZLINE, 32> l2;
 
     uartlite uart;
     rv_clint<2> clint;

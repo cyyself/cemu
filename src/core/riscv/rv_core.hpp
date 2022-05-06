@@ -8,6 +8,7 @@
 #include <deque>
 #include <algorithm>
 #include "clock_manager.hpp"
+#include "cache_uni_def.hpp"
 
 extern bool riscv_test;
 
@@ -21,7 +22,7 @@ extern clock_manager <2> cm;
 
 class rv_core {
 public:
-    rv_core(l2_cache <4,2048,64,32> &l2, uint8_t hart_id = 0):priv(hart_id,pc,l2),hart_id(hart_id) {
+    rv_core(l2_cache <L2_WAYS,L2_NR_SETS,L2_SZLINE,32> &l2, uint8_t hart_id = 0):priv(hart_id,pc,l2),hart_id(hart_id) {
         for (int i=0;i<32;i++) GPR[i] = 0;
     }
     void step(bool meip, bool msip, bool mtip, bool seip) {

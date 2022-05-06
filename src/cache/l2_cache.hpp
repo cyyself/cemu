@@ -12,12 +12,13 @@
 #include <vector>
 #include "co_slave.hpp"
 #include "clock_manager.hpp"
+#include "cache_uni_def.hpp"
 
 enum l2_line_status {
     L2_INVALID, L2_OWNED, L2_SHARED, L2_SLAVE_EXCLUSIVE
 };
 
-template <int nr_ways = 4, int sz_cache_line = 64, int nr_sets = 2048, int nr_max_slave = 32>
+template <int nr_ways = L2_WAYS, int sz_cache_line = L2_SZLINE, int nr_sets = L2_NR_SETS, int nr_max_slave = 32>
 struct l2cache_set {
     uint64_t tag[nr_ways];
     uint8_t data[nr_ways][sz_cache_line];
@@ -41,7 +42,7 @@ struct l2cache_set {
 
 extern clock_manager <2> cm;
 
-template <int nr_ways = 4, int nr_sets = 2048, int sz_cache_line = 64, int nr_max_slave = 32>
+template <int nr_ways = L2_WAYS, int nr_sets = L2_NR_SETS, int sz_cache_line = L2_SZLINE, int nr_max_slave = 32>
 class l2_cache {
 public:
     const int uncached_mmio_read_ticks = 10;

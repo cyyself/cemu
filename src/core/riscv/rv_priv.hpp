@@ -11,6 +11,7 @@
 #include "l1_i_cache.hpp"
 #include "l1_d_cache.hpp"
 #include "rv_sv39.hpp"
+#include "cache_uni_def.hpp"
 
 extern bool riscv_test;
 
@@ -18,7 +19,7 @@ extern clock_manager <2> cm;
 
 class rv_priv {
 public:
-    rv_priv(uint64_t hart_id, uint64_t &pc, l2_cache<4,2048,64,32> &l2):hart_id(hart_id),cur_pc(pc),l2(l2),i_tlb(l2,hart_id),d_tlb(l2,hart_id),l1i(&l2,hart_id),l1d(&l2,hart_id) {
+    rv_priv(uint64_t hart_id, uint64_t &pc, l2_cache<L2_WAYS,L2_NR_SETS,L2_SZLINE,32> &l2):hart_id(hart_id),cur_pc(pc),l2(l2),i_tlb(l2,hart_id),d_tlb(l2,hart_id),l1i(&l2,hart_id),l1d(&l2,hart_id) {
         reset();
     }
     void reset() {
@@ -682,10 +683,10 @@ private:
     rv_sv39<8,false> i_tlb;
     rv_sv39<8,true> d_tlb;
     // pbus
-    l2_cache<4,2048,64,32> &l2;
+    l2_cache<L2_WAYS,L2_NR_SETS,L2_SZLINE,32> &l2;
     // cache
-    l1_i_cache <4,64,64> l1i;
-    l1_d_cache <4,64,64> l1d;
+    l1_i_cache <L1I_WAYS,L1I_SZLINE,L1I_NR_SETS> l1i;
+    l1_d_cache <L1D_WAYS,L1D_SZLINE,L1D_NR_SETS> l1d;
     // CSRs
     uint64_t        status;
     uint64_t        misa;

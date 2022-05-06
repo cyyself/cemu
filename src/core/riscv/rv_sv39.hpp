@@ -6,6 +6,7 @@
 #include "rv_common.hpp"
 #include "rv_systembus.hpp"
 #include "l2_cache.hpp"
+#include "cache_uni_def.hpp"
 
 struct sv39_tlb_entry {
     uint64_t ppa;
@@ -34,7 +35,7 @@ void myassert(bool exp, uint64_t satp, uint64_t va, const char* msg = "") {
 template <unsigned int nr_tlb_entry = 32, bool is_data = true>
 class rv_sv39 {
 public:
-    rv_sv39(l2_cache<4,2048,64,32> &bus, uint64_t slave_id):bus(bus){
+    rv_sv39(l2_cache<L2_WAYS,L2_NR_SETS,L2_SZLINE,32> &bus, uint64_t slave_id):bus(bus){
         random = 0;
         for (int i=0;i<nr_tlb_entry;i++) tlb[i].pagesize = 0;
     }
@@ -111,7 +112,7 @@ public:
         return res;
     }
 private:
-    l2_cache <4,2048,64,32> &bus;
+    l2_cache <L2_WAYS,L2_NR_SETS,L2_SZLINE,32> &bus;
     unsigned int random;
     sv39_tlb_entry tlb[nr_tlb_entry];
     uint64_t slave_id;
