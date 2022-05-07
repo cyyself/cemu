@@ -9,6 +9,8 @@
 #include <algorithm>
 #include "clock_manager.hpp"
 #include "cache_uni_def.hpp"
+#include <algorithm>
+#include <cmath>
 
 extern bool riscv_test;
 
@@ -790,6 +792,10 @@ private:
             return false;
         }
     }
+    uint64_t intlog2(uint64_t x) {
+        for (int i=63;i>=0;i--) if ((x >> i) & 1) return i;
+        return 0;
+    }
     int64_t alu_exec(int64_t a, int64_t b, alu_op op, bool op_32 = false) {
         if (op_32) {
             a = (int32_t)a;
@@ -851,7 +857,7 @@ private:
                 if (b == 0) result = -1;
                 else if (a == LONG_MIN && b == -1) result = LONG_MIN;
                 else {
-                    cm.pipe_ex[hart_id] += 65;
+                    cm.pipe_ex[hart_id] += 2 + intlog2(std::abs(a));
                     result = a / b;
                 }
                 break;
@@ -859,11 +865,11 @@ private:
             case ALU_DIVU: {
                 if (b == 0) result = ULONG_MAX;
                 else if (op_32) {
-                    cm.pipe_ex[hart_id] += 65;
+                    cm.pipe_ex[hart_id] += 2 + intlog2((uint32_t)a);
                     result = (uint32_t)a / (uint32_t)b;
                 }
                 else {
-                    cm.pipe_ex[hart_id] += 65;
+                    cm.pipe_ex[hart_id] += 2 + intlog2((uint64_t)a);
                     result = ((uint64_t)a) / ((uint64_t)b);
                 }
                 break;
@@ -872,7 +878,7 @@ private:
                 if (b == 0) result = a;
                 else if (a == LONG_MIN && b == -1) result = 0;
                 else {
-                    cm.pipe_ex[hart_id] += 65;
+                    cm.pipe_ex[hart_id] += 2 + intlog2(std::abs(a));
                     result = a % b;
                 }
                 break;
@@ -880,11 +886,11 @@ private:
             case ALU_REMU: {
                 if (b == 0) result = a;
                 else if (op_32) {
-                    cm.pipe_ex[hart_id] += 65;
+                    cm.pipe_ex[hart_id] += 2 + intlog2((uint32_t)a);
                     result = (uint32_t)a % (uint32_t)b;
                 }
                 else {
-                    cm.pipe_ex[hart_id] += 65;
+                    cm.pipe_ex[hart_id] += 2 + intlog2((uint64_t)a);
                     result = (uint64_t)a % (uint64_t)b;
                 }
                 break;
