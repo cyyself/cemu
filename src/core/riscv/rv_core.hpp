@@ -51,6 +51,7 @@ private:
     int64_t GPR[32];
     uint64_t GPR_time[32];
     uint64_t hart_id;
+    uint8_t cur_pipe;
     void exec(bool meip, bool msip, bool mtip, bool seip) {
         if (riscv_test && priv.get_cycle() >= 1000000) {
             printf("Test timeout! at pc 0x%lx\n",pc);
@@ -60,6 +61,7 @@ private:
             trace.push(pc);
             while (trace.size() > trace_size) trace.pop();
         }
+        cur_pipe = 0;
         bool ri = false;
         bool new_pc = false;
         uint32_t cur_instr = 0;
@@ -504,13 +506,13 @@ private:
                             if (inst->r_type.funct3 == 0b011) {
                                 int64_t result;
                                 rv_exc_code exc = priv.va_lr(GPR[inst->r_type.rs1],(1<<inst->r_type.funct3),(uint8_t*)&result);
-                                if (exc == exc_custom_ok) set_GPR(inst->r_type.rd,result, cm.pipe_mem[hart_id]);
+                                if (exc == exc_custom_ok) set_GPR(inst->r_type.rd,result, cm.pipe_mem[hart_id] + 1);
                                 else priv.raise_trap(csr_cause_def(exc),GPR[inst->r_type.rs1]);
                             }
                             else {
                                 int32_t result;
                                 rv_exc_code exc = priv.va_lr(GPR[inst->r_type.rs1],(1<<inst->r_type.funct3),(uint8_t*)&result);
-                                if (exc == exc_custom_ok) set_GPR(inst->r_type.rd,result, cm.pipe_mem[hart_id]);
+                                if (exc == exc_custom_ok) set_GPR(inst->r_type.rd,result, cm.pipe_mem[hart_id] + 1);
                                 else priv.raise_trap(csr_cause_def(exc),GPR[inst->r_type.rs1]);
                             }
                         }
@@ -523,7 +525,7 @@ private:
                         enter_mem();
                         bool result;
                         rv_exc_code exc = priv.va_sc(GPR[inst->r_type.rs1],(1<<inst->r_type.funct3),(uint8_t*)&GPR[inst->r_type.rs2],result);
-                        if (exc == exc_custom_ok) set_GPR(inst->r_type.rd,result, cm.pipe_mem[hart_id]);
+                        if (exc == exc_custom_ok) set_GPR(inst->r_type.rd,result, cm.pipe_mem[hart_id] + 1);
                         else priv.raise_trap(csr_cause_def(exc),GPR[inst->r_type.rs1]);
                         break;
                     }
@@ -534,7 +536,7 @@ private:
                         enter_mem();
                         int64_t result;
                         rv_exc_code exc = priv.va_amo(GPR[inst->r_type.rs1],(1<<inst->r_type.funct3),static_cast<amo_funct>(funct5),GPR[inst->r_type.rs2],result);
-                        if (exc == exc_custom_ok) set_GPR(inst->r_type.rd,result, cm.pipe_mem[hart_id]);
+                        if (exc == exc_custom_ok) set_GPR(inst->r_type.rd,result, cm.pipe_mem[hart_id] + 1);
                         else priv.raise_trap(csr_cause_def(exc),GPR[inst->r_type.rs1]);
                         break;
                     }
@@ -730,6 +732,10 @@ private:
         if (ri) {
             priv.raise_trap(csr_cause_def(exc_illegal_instr),cur_instr);
         }
+        if (cur_pipe < 1) enter_if();
+        if (cur_pipe < 2) enter_id();
+        if (cur_pipe < 3) enter_ex();
+        if (cur_pipe < 4) enter_mem();
         if (priv.need_trap()) {
             pc = priv.get_trap_pc();
             cm.pipe_mem[hart_id] += 1;
@@ -737,24 +743,29 @@ private:
         }
         else if (!new_pc) pc = pc + 4;
         else flush_pipe();
-        enter_wb();
+        if (cur_pipe < 5) enter_wb();
         priv.post_exec();
     }
     // clock modeling control
     void enter_if() {
         cm.pipe_if[hart_id] = cm.pipe_if[hart_id] + 1;
+        cur_pipe = 1;
     }
     void enter_id() {
         cm.pipe_id[hart_id] = std::max(cm.pipe_if[hart_id] + 1, cm.pipe_id[hart_id] + 1);
+        cur_pipe = 2;
     }
     void enter_ex() {
         cm.pipe_ex[hart_id] = std::max(cm.pipe_id[hart_id] + 1, cm.pipe_ex[hart_id] + 1);
+        cur_pipe = 3;
     }
     void enter_mem() {
         cm.pipe_mem[hart_id] = std::max(cm.pipe_ex[hart_id] + 1, cm.pipe_mem[hart_id] + 1);
+        cur_pipe = 4;
     }
     void enter_wb() {
         cm.pipe_wb[hart_id] = std::max(cm.pipe_mem[hart_id] + 1, cm.pipe_wb[hart_id] + 1);
+        cur_pipe = 5;
     }
     void flush_pipe() { // assume pipe flush is at mem
         cm.pipe_if[hart_id] = std::max(cm.pipe_mem[hart_id] + 1, cm.pipe_if[hart_id] + 1);
