@@ -29,7 +29,7 @@ struct l1_d_cache_set {
     }
 };
 
-extern clock_manager <2> cm;
+extern clock_manager <32> cm;
 
 template <int nr_ways = L1D_WAYS, int sz_cache_line = L1D_SZLINE, int nr_sets = L1D_NR_SETS>
 class l1_d_cache : public co_slave {

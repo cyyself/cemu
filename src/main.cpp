@@ -16,10 +16,9 @@
 #include "cache_uni_def.hpp"
 #include <signal.h>
 
-bool riscv_test = false;
+#define NR_CORES 4
 
-rv_core *rv_0_ptr;
-rv_core *rv_1_ptr;
+bool riscv_test = false;
 
 void uart_input(uartlite &uart) {
     termios tmp;
@@ -29,17 +28,11 @@ void uart_input(uartlite &uart) {
     while (1) {
         char c = getchar();
         if (c == 10) c = 13; // convert lf to cr
-        /*
-        if (c == 'p') {
-            printf("hart0 pc=%lx\n",rv_0_ptr->getPC());
-            printf("hart1 pc=%lx\n",rv_1_ptr->getPC());
-        }
-        */
         uart.putc(c);
     }
 }
 
-clock_manager <2> cm;
+clock_manager <32> cm(NR_CORES);
 bool send_ctrl_c;
 
 void sigint_handler(int x) {
@@ -48,6 +41,8 @@ void sigint_handler(int x) {
     last_time = time(NULL);
     send_ctrl_c = true;
 }
+
+rv_core *cores[NR_CORES] = {NULL};
 
 int main(int argc, const char* argv[]) {
 
@@ -60,32 +55,30 @@ int main(int argc, const char* argv[]) {
     l2_cache <L2_WAYS, L2_NR_SETS, L2_SZLINE, 32> l2;
 
     uartlite uart;
-    rv_clint<2> clint;
-    rv_plic <4,4> plic;
+    rv_clint<NR_CORES> clint;
+    rv_plic <4,NR_CORES*2> plic;
     ram dram(4096l*1024l*1024l,load_path);
     assert(l2.add_dev(0x2000000,0x10000,&clint));
     assert(l2.add_dev(0xc000000,0x4000000,&plic));
     assert(l2.add_dev(0x60100000,1024*1024,&uart));
     assert(l2.add_dev(0x80000000,2048l*1024l*1024l,&dram));
 
-    rv_core rv_0(l2,0);
-    rv_0_ptr = &rv_0;
-    rv_core rv_1(l2,1);
-    rv_1_ptr = &rv_1;
+    for (int i=0;i<NR_CORES;i++) {
+        cores[i] = new rv_core(l2,i);
+        cores[i]->jump(0x80000000);
+        cores[i]->set_GPR(10,i,0);
+    }
 
     std::thread        uart_input_thread(uart_input,std::ref(uart));
 
-    rv_0.jump(0x80000000);
-    rv_1.jump(0x80000000);
-    rv_1.set_GPR(10,1,0);
     // char uart_history[8] = {0};
     // int uart_history_idx = 0;
     bool delay_cr = false;
     while (1) {
         clint.set_time(cm.cur_time());
         plic.update_ext(1,uart.irq());
-        if (cm.pipe_wb[0] < cm.pipe_wb[1]) rv_0.step(plic.get_int(0),clint.m_s_irq(0),clint.m_t_irq(0),plic.get_int(1));
-        else rv_1.step(plic.get_int(2),clint.m_s_irq(1),clint.m_t_irq(1),plic.get_int(3));
+        uint64_t exec_core = cm.get_min_wb();
+        cores[exec_core]->step(plic.get_int(exec_core*2),clint.m_s_irq(exec_core),clint.m_t_irq(exec_core),plic.get_int(exec_core*2+1));
         while (uart.exist_tx()) {
             char c = uart.getc();
             if (c == '\r') delay_cr = true;

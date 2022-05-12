@@ -15,7 +15,7 @@
 
 extern bool riscv_test;
 
-extern clock_manager <2> cm;
+extern clock_manager <32> cm;
 
 class rv_priv {
 public:

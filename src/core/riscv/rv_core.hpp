@@ -20,7 +20,7 @@ enum alu_op {
     ALU_NOP
 };
 
-extern clock_manager <2> cm;
+extern clock_manager <32> cm;
 
 class rv_core {
 public:

@@ -4,11 +4,11 @@
 #include <cstdint>
 #include <algorithm>
 
-template <int nr_core = 2>
+template <int max_nr_core = 32>
 class clock_manager {
     // clock manager stores the next available time for calculating IPC including cache coherence protocol
 public:
-    clock_manager() {
+    clock_manager(int nr_core):nr_core(nr_core) {
         for (int i=0;i<nr_core;i++) {
             pipe_if[i] = 0;
             pipe_id[i] = 0;
@@ -27,13 +27,13 @@ public:
         l1d[hart_id] = std::max(l1d[hart_id],clk);
         clk = l1d[hart_id];
     }
-    uint64_t pipe_if[nr_core];
-    uint64_t pipe_id[nr_core];
-    uint64_t pipe_ex[nr_core];
-    uint64_t pipe_mem[nr_core];
-    uint64_t pipe_wb[nr_core];
+    uint64_t pipe_if[max_nr_core];
+    uint64_t pipe_id[max_nr_core];
+    uint64_t pipe_ex[max_nr_core];
+    uint64_t pipe_mem[max_nr_core];
+    uint64_t pipe_wb[max_nr_core];
 
-    uint64_t l1d[nr_core];
+    uint64_t l1d[max_nr_core];
     uint64_t l2;
 
     uint64_t cur_time() {
@@ -49,6 +49,17 @@ public:
         res = std::max(res,l2);
         return res;
     }
+    uint64_t get_min_wb() {
+        uint64_t res = 0;
+        for (int i=1;i<nr_core;i++) {
+            if (pipe_wb[i] < pipe_wb[res]) {
+                res = i;
+            }
+        }
+        return res;
+    }
+private:
+    int nr_core;
 };
 
 #endif

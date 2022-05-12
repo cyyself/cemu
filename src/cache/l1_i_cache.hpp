@@ -26,7 +26,7 @@ struct l1_i_cache_set {
     }
 };
 
-extern clock_manager <2> cm;
+extern clock_manager <32> cm;
 
 template <int nr_ways = L1I_WAYS, int sz_cache_line = L1I_SZLINE, int nr_sets = L1I_NR_SETS>
 class l1_i_cache {

@@ -40,7 +40,7 @@ struct l2cache_set {
     }
 };
 
-extern clock_manager <2> cm;
+extern clock_manager <32> cm;
 
 template <int nr_ways = L2_WAYS, int nr_sets = L2_NR_SETS, int sz_cache_line = L2_SZLINE, int nr_max_slave = 32>
 class l2_cache {
