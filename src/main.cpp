@@ -11,6 +11,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <thread>
+#include <signal.h>
 
 bool riscv_test = false;
 
@@ -35,7 +36,18 @@ void uart_input(uartlite &uart) {
     }
 }
 
+bool send_ctrl_c;
+
+void sigint_handler(int x) {
+    static time_t last_time;
+    if (time(NULL) - last_time < 1) exit(0);
+    last_time = time(NULL);
+    send_ctrl_c = true;
+}
+
 int main(int argc, const char* argv[]) {
+
+    signal(SIGINT, sigint_handler);
 
     const char *load_path = "../opensbi/build/platform/generic/firmware/fw_payload.bin";
     if (argc >= 2) load_path = argv[1];
@@ -81,6 +93,10 @@ int main(int argc, const char* argv[]) {
             }
             // uart_history[uart_history_idx] = c;
             // uart_history_idx = (uart_history_idx + 1) % 8;
+        }
+        if (send_ctrl_c) {
+            uart.putc(3);
+            send_ctrl_c = false;
         }
         //printf("%lx %lx\n",rv_0.getPC(),rv_1.getPC());
     }
