@@ -24,14 +24,15 @@ class uart8250 : public memory {
 public:
     uart8250() {
         thr_empty = false;
+        DLL = 0;
+        DLM = 0;
+        IER = 0;
         LCR = 0b00000011; // 8in1
+        IIR = 0;
+        MCR = 0;
     }
     bool do_read(unsigned long start_addr, unsigned long size, unsigned char* buffer) {
         std::unique_lock<std::mutex> lock(rx_lock);
-        //printf("%lx %lx\n",start_addr,size);
-        if (size != 1) {
-            printf("%lx %lx\n",start_addr,size);
-        }
         assert(size == 1);
         switch (start_addr) {
             case UART8250_TX_RX_DLL: {
@@ -63,6 +64,7 @@ public:
                 // IIR
                 update_IIR();
                 *buffer = IIR;
+                thr_empty = false;
                 break;
             }
             case UART8250_LCR: {
@@ -103,6 +105,7 @@ public:
                 }
                 else {
                     tx.push(static_cast<char>(*buffer));
+                    thr_empty = false;
                 }
                 break;
             }
@@ -166,7 +169,7 @@ public:
     }
     bool irq() {
         update_IIR();
-        return IIR & 1;
+        return !(IIR & 1);
     }
     bool exist_tx() {
         std::unique_lock<std::mutex> lock(tx_lock);
@@ -177,13 +180,17 @@ private:
         return (LCR >> 7) != 0;
     }
     void update_IIR() {
-        IIR = 0;
+        IIR = 3 << 6; // FIFO Enabled
+        bool no_int = true;
         if ( (IER & UART8250_IER_THRE) && thr_empty) {
-            IIR = 1 | (1<<1);
+            IIR |= (1<<1);
+            no_int = false;
         }
-        if ((IER & UART8250_IER_RDA) && !rx.empty()) {
-            IIR = 1 | (2<<1);
+        if ( (IER & UART8250_IER_RDA) && !rx.empty()) {
+            IIR |= (2<<1);
+            no_int = false;
         }
+        IIR |= no_int;
     }
     const static unsigned long UART_RX = 0;
     const static unsigned long UART_TX = 0;
