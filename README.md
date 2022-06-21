@@ -15,6 +15,7 @@ A simple full system emulator.
 ## Devices Support
 
 - Xilinx UARTLite
+- Serial 8250 (16550 Compatible)
 
 ## Help
 
