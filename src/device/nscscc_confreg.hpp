@@ -4,6 +4,8 @@
 #include "memory.hpp"
 #include <cstring>
 #include <cassert>
+#include <queue>
+#include <fstream>
 
 // offset += 0x1faf8000
 
@@ -33,18 +35,19 @@
 // physical address = [0x1faf0000,0x1fafffff]
 class nscscc_confreg : public memory {
 public:
-    nscscc_confreg() {
+    nscscc_confreg(bool simulation = false) {
         timer = 0;
         memset(cr,0,sizeof(cr));
         led = 0;
         led_rg0 = 0;
         led_rg1 = 0;
         num = 0;
-        simu_flag = 0xffffffffu;
+        simu_flag = simulation ? 0xffffffffu : 0;
         io_simu = 0;
         open_trace = 1;
         num_monitor = 1;
         virtual_uart = 0;
+        set_switch(0);
     }
     void tick() {
         timer ++;
@@ -89,7 +92,7 @@ public:
                 *(unsigned int *)buffer = num;
                 break;
             case SWITCH_ADDR:
-                *(unsigned int *)buffer = 0;
+                *(unsigned int *)buffer = switch_data;
                 break;
             case BTN_KEY_ADDR:
                 *(unsigned int *)buffer = 0;
@@ -98,7 +101,7 @@ public:
                 *(unsigned int *)buffer = 0;
                 break;
             case SW_INTER_ADDR:
-                *(unsigned int *)buffer = 0;
+                *(unsigned int *)buffer = switch_inter_data;
                 break;
             case TIMER_ADDR:
                 *(unsigned int *)buffer = timer;
@@ -114,15 +117,18 @@ public:
                 break;
             case OPEN_TRACE_ADDR:
                 *(unsigned int *)buffer = open_trace;
+                break;
             case NUM_MONITOR_ADDR:
                 *(unsigned int *)buffer = num_monitor;
+                break;
             default:
                 *(unsigned int *)buffer = 0;
                 break;
         }
+        return true;
     }
     bool do_write(unsigned long start_addr, unsigned long size, const unsigned char* buffer) {
-        assert(size == 4);
+        assert(size == 4 || (size == 1 && start_addr == VIRTUAL_UART_ADDR));
         switch (start_addr) {
             case CR0_ADDR:
                 cr[0] = *(unsigned int*)buffer;
@@ -154,21 +160,77 @@ public:
             case IO_SIMU_ADDR:
                 io_simu = (((*(unsigned int*)buffer) & 0xffff) << 16) | ((*(unsigned int*)buffer) >> 16);
                 break;
-            case OPEN_TRACE_ADDR:
+            case OPEN_TRACE_ADDR: {
                 open_trace = (*(unsigned int*)buffer) != 0;
                 break;
+            }
             case NUM_MONITOR_ADDR:
                 num_monitor = (*(unsigned int*)buffer) & 1;
                 break;
             case VIRTUAL_UART_ADDR:
-                virtual_uart = (*(unsigned int*)buffer) & 0xf;
+                virtual_uart = (*(char*)buffer) & 0xff;
+                uart_queue.push(virtual_uart);
+                break;
+            case NUM_ADDR:
+                num = *(unsigned int*)buffer;
                 break;
             default:
                 break;
         }
+        return true;
+    }
+    bool trace_on() {
+        return open_trace != 0;
+    }
+    void set_switch(uint8_t value) {
+        switch_data = value ^ 0xf;
+        switch_inter_data = 0;
+        for (int i=0;i<=7;i++) {
+            if ( ((value >> i) & 1) == 0) {
+                switch_inter_data |= 2<<(2*i);
+            }
+        }
+    }
+    bool has_uart() {
+        return !uart_queue.empty();
+    }
+    char get_uart() {
+        char res = uart_queue.front();
+        uart_queue.pop();
+        return res;
+    }
+    uint32_t get_num() {
+        return num;
+    }
+    // trace
+    void set_trace_file(std::string filename) {
+        trace_file.open(filename);
+    }
+    bool do_trace(uint32_t pc, uint8_t wen, uint8_t wnum, uint32_t wdata, bool output = true) {
+        uint32_t trace_cmp_flag;
+        uint32_t ref_pc;
+        uint32_t ref_wnum;
+        uint32_t ref_wdata;
+        if (trace_on() && wen && wnum) {
+            while (trace_file >> std::hex >> trace_cmp_flag >> ref_pc >> ref_wnum >> ref_wdata && !trace_cmp_flag) {
+
+            }
+            if (pc != ref_pc || wnum != ref_wnum || wdata != ref_wdata) {
+                if (output) {
+                    printf("Error!\n");
+                    printf("reference: PC = 0x%08x, wb_rf_wnum = 0x%02x, wb_rf_wdata = 0x%08x\n", ref_pc, ref_wnum, ref_wdata);
+                    printf("mycpu    : PC = 0x%08x, wb_rf_wnum = 0x%02x, wb_rf_wdata = 0x%08x\n", pc, wnum, wdata);
+                }
+                return false;
+            }
+        }
+        return true;
     }
 private:
+    std::ifstream trace_file;
     uint32_t cr[8];
+    unsigned int switch_data;
+    unsigned int switch_inter_data;
     unsigned int timer;
     unsigned int led;
     unsigned int led_rg0;
@@ -176,9 +238,10 @@ private:
     unsigned int num;
     unsigned int simu_flag;
     unsigned int io_simu;
-    unsigned int virtual_uart;
+    char virtual_uart;
     unsigned int open_trace;
     unsigned int num_monitor;
+    std::queue <char> uart_queue;
 };
 
 #endif
