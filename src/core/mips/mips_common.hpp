@@ -7,11 +7,11 @@ union mips_instr {
         unsigned int rt : 5;
         unsigned int rs : 5;
         unsigned int opcode : 6;
-    };
+    } i_type;
     struct mips_j {
-        int imm : 26;
+        unsigned int imm : 26;
         unsigned int opcode : 6;
-    };
+    } j_type;
     struct mips_r {
         unsigned int funct : 6;
         unsigned int sa : 5;
@@ -19,7 +19,7 @@ union mips_instr {
         unsigned int rt : 5;
         unsigned int rs : 5;
         unsigned int opcode : 6;
-    };
+    } r_type;
 };
 
 enum mips32_opcode {
@@ -76,6 +76,10 @@ enum mips32_special_funct {
     FUNCT_MTHI      = 0b010001,
     FUNCT_MFLO      = 0b010010,
     FUNCT_MTLO      = 0b010011,
+    FUNCT_MULT      = 0b011000,
+    FUNCT_MULTU     = 0b011001,
+    FUNCT_DIV       = 0b011010,
+    FUNCT_DIVU      = 0b011011,
     FUNCT_ADD       = 0b100000,
     FUNCT_ADDU      = 0b100001,
     FUNCT_SUB       = 0b100010,
@@ -134,7 +138,8 @@ enum mips32_co_funct {
     FUNCT_WAIT  = 0b100000
 };
 
-enum mips32_ExcCode {
+enum mips32_exccode : unsigned int {
+    EXC_OK      = 31,   // OK for CEMU
     EXC_INT     = 0,    // Interrupt
     EXC_MOD     = 1,    // TLB modification
     EXC_TLBL    = 2,    // TLB exception (load or instruction fetch)
@@ -151,6 +156,44 @@ enum mips32_ExcCode {
     EXC_TR      = 13,   // Trap exception
     EXC_TLBRI   = 19,   // TLB Read-Inhibit exception
     EXC_TLBXI   = 20    // TLB Execution-Inhibit exception
+};
+
+enum mips32_ksu : unsigned int {
+    KERNEL_MODE = 0b00,
+    USER_MODE   = 0b10
+};
+
+struct cp0_status {
+    unsigned int IE  : 1; // Interrupt Enable
+    unsigned int EXL : 1; // Exception Level
+    unsigned int ERL : 1; // Error Level
+    mips32_ksu   KSU : 2;
+    unsigned int blank0 : 3;
+    unsigned int IM  : 8; // Interrupt Mask
+    unsigned int blank1 : 6;
+    unsigned int BEV : 1; // bootstrap exception vector
+    unsigned int blank2 : 9;
+};
+
+struct cp0_cause {
+    unsigned int blank0 : 2;
+    unsigned int exccode : 5;
+    unsigned int blank1 : 1;
+    unsigned int IP : 8; // IP1 and IP0 is writeable
+    unsigned int blank2 : 7;
+    unsigned int IV : 1; // interrupt vector 0: 0x180, 1: 0x200
+    unsigned int blank3 : 6;
+    unsigned int TI : 1; // Timer Interrupt
+    unsigned int BD : 1; // last exception taken occurred in a branch delay slot
+};
+
+enum cp0_rd {
+    RD_BADVA    = 8,
+    RD_COUNT    = 9,
+    RD_COMPARE  = 11,
+    RD_STATUS   = 12,
+    RD_CAUSE    = 13,
+    RD_EPC      = 14
 };
 
 #endif

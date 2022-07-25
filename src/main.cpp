@@ -1,104 +1,73 @@
 #include <iostream>
 #include <bitset>
+#include <cassert>
 
+#include "mips_core.hpp"
+#include "nscscc_confreg.hpp"
 #include "memory_bus.hpp"
-#include "uartlite.hpp"
 #include "ram.hpp"
-#include "rv_core.hpp"
-#include "rv_systembus.hpp"
-#include "rv_clint.hpp"
-#include "rv_plic.hpp"
-#include <termios.h>
-#include <unistd.h>
-#include <thread>
-#include <signal.h>
 
-bool riscv_test = false;
+void nscscc_func() {
+    memory_bus mmio;
+    
+    ram func_mem(262144*4, "../nscscc-group/func_test_v0.01/soft/func/obj/main.bin");
+    func_mem.set_allow_warp(true);
+    assert(mmio.add_dev(0x1fc00000,0x100000  ,&func_mem));
+    assert(mmio.add_dev(0x00000000,0x10000000,&func_mem));
+    assert(mmio.add_dev(0x20000000,0x20000000,&func_mem));
+    assert(mmio.add_dev(0x40000000,0x40000000,&func_mem));
+    assert(mmio.add_dev(0x80000000,0x80000000,&func_mem));
 
-rv_core *rv_0_ptr;
-rv_core *rv_1_ptr;
+    nscscc_confreg confreg(true);
+    confreg.set_trace_file("../nscscc-group/func_test_v0.01/cpu132_gettrace/golden_trace.txt");
+    assert(mmio.add_dev(0x1faf0000,0x10000,&confreg));
 
-void uart_input(uartlite &uart) {
-    termios tmp;
-    tcgetattr(STDIN_FILENO,&tmp);
-    tmp.c_lflag &=(~ICANON & ~ECHO);
-    tcsetattr(STDIN_FILENO,TCSANOW,&tmp);
-    while (1) {
-        char c = getchar();
-        if (c == 10) c = 13; // convert lf to cr
-        /*
-        if (c == 'p') {
-            printf("hart0 pc=%lx\n",rv_0_ptr->getPC());
-            printf("hart1 pc=%lx\n",rv_1_ptr->getPC());
+    mips_core mips(mmio, confreg);
+    mips.set_confreg_trace(true);
+
+    int test_point = 0;
+    while (true) {
+        mips.step();
+        confreg.tick();
+        while (confreg.has_uart()) printf("%c", confreg.get_uart());
+        if (confreg.get_num() != test_point) {
+            test_point = confreg.get_num();
+            printf("Number %d Functional Test Point PASS!\n", test_point>>24);
+            if ( (test_point >> 24) == 89) return;
         }
-        */
-        uart.putc(c);
     }
 }
 
-bool send_ctrl_c;
+void nscscc_perf() {
+    memory_bus mmio;
+    
+    ram perf_mem(262144*4, "../nscscc-group/perf_test_v0.01/soft/perf_func/obj/allbench/inst_data.bin");
+    perf_mem.set_allow_warp(true);
+    assert(mmio.add_dev(0x1fc00000,0x100000  ,&perf_mem));
+    assert(mmio.add_dev(0x00000000,0x10000000,&perf_mem));
+    assert(mmio.add_dev(0x20000000,0x20000000,&perf_mem));
+    assert(mmio.add_dev(0x40000000,0x40000000,&perf_mem));
+    assert(mmio.add_dev(0x80000000,0x80000000,&perf_mem));
 
-void sigint_handler(int x) {
-    static time_t last_time;
-    if (time(NULL) - last_time < 1) exit(0);
-    last_time = time(NULL);
-    send_ctrl_c = true;
+    nscscc_confreg confreg(false);
+    assert(mmio.add_dev(0x1faf0000,0x10000,&confreg));
+
+    mips_core mips(mmio, confreg);
+
+    for (int test_num=1;test_num<=10;test_num ++) {
+        confreg.set_switch(test_num);
+        mips.reset();
+        while (true) {
+            mips.step();
+            confreg.tick();
+            if (mips.get_pc() == 0xbfc00100u) break;
+        }
+        printf("%x\n",confreg.get_num());
+    }
 }
 
 int main(int argc, const char* argv[]) {
-
-    signal(SIGINT, sigint_handler);
-
-    const char *load_path = "../opensbi/build/platform/generic/firmware/fw_payload.bin";
-    if (argc >= 2) load_path = argv[1];
-    for (int i=1;i<argc;i++) if (strcmp(argv[i],"-rvtest") == 0) riscv_test = true;
-
-    rv_systembus system_bus;
-
-    uartlite uart;
-    rv_clint<2> clint;
-    rv_plic <4,4> plic;
-    ram dram(4096l*1024l*1024l,load_path);
-    assert(system_bus.add_dev(0x2000000,0x10000,&clint));
-    assert(system_bus.add_dev(0xc000000,0x4000000,&plic));
-    assert(system_bus.add_dev(0x60100000,1024*1024,&uart));
-    assert(system_bus.add_dev(0x80000000,2048l*1024l*1024l,&dram));
-
-    rv_core rv_0(system_bus,0);
-    rv_0_ptr = &rv_0;
-    rv_core rv_1(system_bus,1);
-    rv_1_ptr = &rv_1;
-
-    std::thread        uart_input_thread(uart_input,std::ref(uart));
-
-    rv_0.jump(0x80000000);
-    rv_1.jump(0x80000000);
-    rv_1.set_GPR(10,1);
-    // char uart_history[8] = {0};
-    // int uart_history_idx = 0;
-    bool delay_cr = false;
-    while (1) {
-        clint.tick();
-        plic.update_ext(1,uart.irq());
-        rv_0.step(plic.get_int(0),clint.m_s_irq(0),clint.m_t_irq(0),plic.get_int(1));
-        rv_1.step(plic.get_int(2),clint.m_s_irq(1),clint.m_t_irq(1),plic.get_int(3));
-        while (uart.exist_tx()) {
-            char c = uart.getc();
-            if (c == '\r') delay_cr = true;
-            else {
-                if (delay_cr && c != '\n') std::cout << "\r" << c;
-                else std::cout << c;
-                std::cout.flush();
-                delay_cr = false;
-            }
-            // uart_history[uart_history_idx] = c;
-            // uart_history_idx = (uart_history_idx + 1) % 8;
-        }
-        if (send_ctrl_c) {
-            uart.putc(3);
-            send_ctrl_c = false;
-        }
-        //printf("%lx %lx\n",rv_0.getPC(),rv_1.getPC());
-    }
+    nscscc_func();
+    nscscc_perf();
     return 0;
 }
