@@ -32,6 +32,14 @@ public:
             memcpy(buffer,&mem[start_addr],size);
             return true;
         }
+        else if (allow_warp) {
+            start_addr %= mem_size;
+            if (start_addr + size <= mem_size) {
+                memcpy(buffer,&mem[start_addr],size);
+                return true;
+            }
+            else return false;
+        }
         else return false;
     }
     bool do_write(unsigned long start_addr, unsigned long size, const unsigned char* buffer) {
@@ -39,9 +47,21 @@ public:
             memcpy(&mem[start_addr],buffer,size);
             return true;
         }
+        else if (allow_warp) {
+            start_addr %= mem_size;
+            if (start_addr + size <= mem_size) {
+                memcpy(&mem[start_addr],buffer,size);
+                return true;
+            }
+            else return false;
+        }
         else return false;
     }
+    void set_allow_warp(bool value) {
+        allow_warp = true;
+    }
 private:
+    bool allow_warp = false;
     unsigned char *mem;
     unsigned long mem_size;
 };
