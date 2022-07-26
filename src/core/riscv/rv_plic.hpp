@@ -1,14 +1,14 @@
 #ifndef RV_PLIC_HPP
 #define RV_PLIC_HPP
 
-#include "memory.hpp"
+#include "mmio_dev.hpp"
 #include <cstring>
 #include <climits>
 #include <bitset>
 
 // We need 2 context corresponding to meip and seip per hart.
 template <int nr_source = 1, int nr_context = 2>
-class rv_plic : public memory {
+class rv_plic : public mmio_dev {
 public:
     rv_plic() {
         for (int i=0;i<(nr_source+1);i++) {

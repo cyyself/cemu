@@ -1,14 +1,14 @@
 #ifndef XBAR_HPP
 #define XBAR_HPP
 
-#include "memory.hpp"
+#include "mmio_dev.hpp"
 #include <map>
 #include <utility>
 #include <climits>
 
-class memory_bus : public memory {
+class memory_bus : public mmio_dev {
 public:
-    bool add_dev(unsigned long start_addr, unsigned long length, memory *dev) {
+    bool add_dev(unsigned long start_addr, unsigned long length, mmio_dev *dev) {
         std::pair<unsigned long, unsigned long> addr_range = std::make_pair(start_addr,start_addr+length);
         if (start_addr % length) return false;
         // check range
@@ -51,7 +51,7 @@ public:
         else return false;
     }
 private:
-    std::map < std::pair<unsigned long,unsigned long>, memory* > devices;
+    std::map < std::pair<unsigned long,unsigned long>, mmio_dev* > devices;
 };
 
 #endif
