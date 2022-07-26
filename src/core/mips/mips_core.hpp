@@ -28,6 +28,16 @@ public:
         memset(GPR,0,sizeof(GPR));
         hi = 0;
         lo = 0;
+        next_delay_slot = false;
+        in_delay_slot = false;
+        next_control_trans = false;
+        cur_control_trans = false;
+        cp0.reset();
+        debug_wb_pc = 0;
+        debug_wb_wen = 0;
+        debug_wb_wnum = 0;
+        debug_wb_wdata = 0;
+        debug_wb_is_timer = 0;
     }
     uint32_t get_pc() {
         return pc;
