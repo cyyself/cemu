@@ -42,7 +42,7 @@ public:
     void mtc0(uint32_t reg, uint32_t sel, uint32_t value) {
         switch (reg) {
             case RD_COUNT:
-                count_shadow = (uint64_t)value << 1;
+                count = value;
                 assert(sel == 0);
                 break;
             case RD_COMPARE: {
@@ -88,8 +88,7 @@ public:
     }
     void pre_exec(unsigned int ext_int) {
         cur_need_trap = false;
-        count_shadow ++;
-        count = (count_shadow >> 1) & 0xffffffffu;
+        count = (count + 1llu) &0xfffffffflu;
         cp0_cause *cause_reg = (cp0_cause*)&cause;
         cause_reg->IP = (cause_reg->IP & 0b11) | ( (ext_int & 0b11111) << 2);
         check_and_raise_int();
