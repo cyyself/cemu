@@ -1,7 +1,7 @@
 #ifndef NSCSCC_CONFREG
 #define NSCSCC_CONFREG
 
-#include "memory.hpp"
+#include "mmio_dev.hpp"
 #include <cstring>
 #include <cassert>
 #include <queue>
@@ -33,7 +33,7 @@
 #define NUM_MONITOR_ADDR    0xfffc  //32'hbfaf_fffc
 
 // physical address = [0x1faf0000,0x1fafffff]
-class nscscc_confreg : public memory {
+class nscscc_confreg : public mmio_dev {
 public:
     nscscc_confreg(bool simulation = false) {
         timer = 0;

@@ -1,7 +1,7 @@
 #ifndef UART8250_HPP
 #define UART8250_HPP
 
-#include "memory.hpp"
+#include "mmio_dev.hpp"
 #include <mutex>
 #include <queue>
 #include <assert.h>
@@ -20,7 +20,7 @@
 #define UART8250_IER_LSRC   4   // Receiver line status register chagne
 #define UART8250_IER_MSRC   8   // Modem status register change
 
-class uart8250 : public memory {
+class uart8250 : public mmio_dev {
 public:
     uart8250() {
         thr_empty = false;

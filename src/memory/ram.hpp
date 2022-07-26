@@ -1,14 +1,14 @@
 #ifndef RAM_HPP
 #define RAM_HPP
 
-#include "memory.hpp"
+#include "mmio_dev.hpp"
 #include <cstring>
 #include <fstream>
 #include <filesystem>
 #include <iostream>
 #include <assert.h>
 
-class ram: public memory {
+class ram: public mmio_dev {
 public:
     ram(unsigned long size_bytes) {
         mem = new unsigned char[size_bytes];

@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <assert.h>
 #include <algorithm>
-#include "memory.hpp"
+#include "mmio_dev.hpp"
 #include <map>
 #include <utility>
 #include <climits>
@@ -105,7 +105,7 @@ public:
         dst = res;
         return pa_write(pa,size,(uint8_t*)&to_write);
     }
-    bool add_dev(unsigned long start_addr, unsigned long length, memory *dev) {
+    bool add_dev(unsigned long start_addr, unsigned long length, mmio_dev *dev) {
         std::pair<unsigned long, unsigned long> addr_range = std::make_pair(start_addr,start_addr+length);
         if (start_addr % length) return false;
         // check range
@@ -130,7 +130,7 @@ private:
     uint64_t lr_size;
     uint64_t lr_hart;
     bool lr_valid = false;
-    std::map < std::pair<unsigned long,unsigned long>, memory* > devices;
+    std::map < std::pair<unsigned long,unsigned long>, mmio_dev* > devices;
 };
 
 #endif

@@ -1,7 +1,7 @@
 #ifndef UARTLITE_HPP
 #define UARTLITE_HPP
 
-#include "memory.hpp"
+#include "mmio_dev.hpp"
 #include <algorithm>
 #include <queue>
 #include <mutex>
@@ -22,7 +22,7 @@ struct uartlite_regs {
     unsigned int control;
 };
 
-class uartlite : public memory {
+class uartlite : public mmio_dev {
 public:
     uartlite() {
         memset(&regs,0,sizeof(regs));

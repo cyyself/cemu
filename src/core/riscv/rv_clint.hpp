@@ -1,11 +1,11 @@
 #ifndef RV_CLINT_HPP
 #define RV_CLINT_HPP
 
-#include "memory.hpp"
+#include "mmio_dev.hpp"
 #include <cstdint>
 
 template <unsigned int nr_hart=1>
-class rv_clint : public memory {
+class rv_clint : public mmio_dev {
 public:
     rv_clint() {
         mtime = 0;
