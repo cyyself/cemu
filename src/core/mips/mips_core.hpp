@@ -7,12 +7,11 @@
 #include "mips_mmu.hpp"
 #include <cstring>
 #include <cassert>
-#include "nscscc_confreg.hpp"
 #include <queue>
 
 class mips_core {
 public:
-    mips_core(memory_bus &bus, nscscc_confreg &confreg):mmu(bus),cp0(pc,in_delay_slot),confreg(confreg) {
+    mips_core(memory_bus &bus):mmu(bus),cp0(pc,in_delay_slot) {
         reset();
     }
     void step() {
@@ -20,12 +19,9 @@ public:
     }
     void set_GPR(uint8_t GPR_index, int32_t value) {
         GPR[GPR_index] = value;
-        if (confreg_trace) {
-            bool res = confreg.do_trace(pc, 0xf, GPR_index, value);
-            if (!res) {
-                exit(1);
-            }
-        }
+        debug_wb_wen = 0xfu;
+        debug_wb_wnum = GPR_index;
+        debug_wb_wdata = value;
     }
     void reset() {
         pc = 0xbfc00000;
@@ -36,9 +32,12 @@ public:
     uint32_t get_pc() {
         return pc;
     }
-    void set_confreg_trace(bool new_value) {
-        confreg_trace = new_value;
-    }
+    uint32_t debug_wb_pc;
+    uint8_t  debug_wb_wen;
+    uint8_t  debug_wb_wnum;
+    uint32_t debug_wb_wdata;
+    bool     debug_wb_is_timer;
+    // TODO: trace with exceptions (add exception signal at commit stage is need)
 private:
     void exec() {
         in_delay_slot = next_delay_slot;
@@ -46,6 +45,11 @@ private:
         cur_control_trans = next_control_trans;
         next_control_trans = false;
         bool ri = false;
+        debug_wb_pc = pc;
+        debug_wb_wen = 0;
+        debug_wb_wnum = 0;
+        debug_wb_wdata = 0;
+        debug_wb_is_timer = false;
         mips_instr instr;
         mips32_exccode if_exc = EXC_OK;
         cp0.pre_exec(0);
@@ -495,6 +499,7 @@ private:
                 // LW
                 uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
                 uint32_t buf;
+                if (vaddr == 0xbfafe000u) debug_wb_is_timer = true; // for difftest
                 mips32_exccode stat = mmu.va_read(vaddr, 4, (unsigned char*)&buf, cp0.get_ksu());
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr);
                 else set_GPR(instr.i_type.rt, buf);
@@ -563,6 +568,7 @@ private:
                 switch (instr.r_type.rs) {
                     case RS_MFC0: {
                         // MFC0
+                        if (instr.r_type.rd == RD_COUNT && (instr.r_type.funct & 0b111) == 0) debug_wb_is_timer = true; // for difftest
                         set_GPR(instr.r_type.rt, cp0.mfc0(instr.r_type.rd, instr.r_type.funct&0b111));
                         break;
                     }
@@ -619,8 +625,6 @@ private:
     int32_t hi,lo;
     mips_mmu mmu;
     mips_cp0 cp0;
-    nscscc_confreg &confreg;
-    bool confreg_trace = false;
     std::queue <uint32_t> pc_trace;
 };
 

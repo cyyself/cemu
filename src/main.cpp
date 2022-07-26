@@ -22,13 +22,14 @@ void nscscc_func() {
     confreg.set_trace_file("../nscscc-group/func_test_v0.01/cpu132_gettrace/golden_trace.txt");
     assert(mmio.add_dev(0x1faf0000,0x10000,&confreg));
 
-    mips_core mips(mmio, confreg);
-    mips.set_confreg_trace(true);
+    mips_core mips(mmio);
 
     int test_point = 0;
-    while (true) {
+    bool running = true;
+    while (running) {
         mips.step();
         confreg.tick();
+        running = confreg.do_trace(mips.debug_wb_pc, mips.debug_wb_wen, mips.debug_wb_wnum, mips.debug_wb_wdata);
         while (confreg.has_uart()) printf("%c", confreg.get_uart());
         if (confreg.get_num() != test_point) {
             test_point = confreg.get_num();
@@ -52,7 +53,7 @@ void nscscc_perf() {
     nscscc_confreg confreg(false);
     assert(mmio.add_dev(0x1faf0000,0x10000,&confreg));
 
-    mips_core mips(mmio, confreg);
+    mips_core mips(mmio);
 
     for (int test_num=1;test_num<=10;test_num ++) {
         confreg.set_switch(test_num);
