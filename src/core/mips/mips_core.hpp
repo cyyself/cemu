@@ -7,7 +7,7 @@
 #include "mips_mmu.hpp"
 #include <cstring>
 #include <cassert>
-#include <nscscc_confreg.hpp>
+#include "nscscc_confreg.hpp"
 #include <queue>
 
 class mips_core {
