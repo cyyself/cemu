@@ -64,6 +64,10 @@ void nscscc_perf() {
             if (mips.get_pc() == 0xbfc00100u) break;
         }
         printf("%x\n",confreg.get_num());
+        // printf("%u,%u,%u,%u,%u\n",confreg.get_num(),mips.forward_branch,mips.forward_branch_taken,mips.backward_branch,mips.backward_branch_taken);
+        // printf("%u,%u\n", mips.insret, mips.forward_branch_taken + mips.backward_branch_taken);
+        // printf("forward : %u,  forward_taken: %u,  forward_taken_rate: %0.5lf.\n", mips.forward_branch, mips.forward_branch_taken, (double)mips.forward_branch_taken/mips.forward_branch);
+        // printf("backward: %u, backward_taken: %u, backward_taken_rate: %0.5lf.\n", mips.backward_branch, mips.backward_branch_taken, (double)mips.backward_branch_taken/mips.backward_branch);
     }
 }
 

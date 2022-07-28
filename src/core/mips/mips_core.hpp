@@ -38,10 +38,20 @@ public:
         debug_wb_wnum = 0;
         debug_wb_wdata = 0;
         debug_wb_is_timer = 0;
+        forward_branch = 0;
+        forward_branch_taken = 0;
+        backward_branch = 0;
+        backward_branch_taken = 0;
+        insret = 0;
     }
     uint32_t get_pc() {
         return pc;
     }
+    uint32_t forward_branch;
+    uint32_t forward_branch_taken;
+    uint32_t backward_branch;
+    uint32_t backward_branch_taken;
+    uint32_t insret;
     uint32_t debug_wb_pc;
     uint8_t  debug_wb_wen;
     uint8_t  debug_wb_wnum;
@@ -368,29 +378,41 @@ private:
             case OPCODE_BEQ: {
                 // BEQ
                 next_delay_slot = true;
+                if (instr.i_type.imm < 0) backward_branch ++;
+                else forward_branch ++;
                 if (GPR[instr.i_type.rs] == GPR[instr.i_type.rt]) {
                     next_control_trans = true;
                     delay_npc = pc + (instr.i_type.imm << 2) + 4;
+                    if (instr.i_type.imm < 0) backward_branch_taken ++;
+                    else forward_branch_taken ++;
                 }
                 break;
             }
             case OPCODE_BNE: {
                 // BNE
+                if (instr.i_type.imm < 0) backward_branch ++;
+                else forward_branch ++;
                 next_delay_slot = true;
                 if (GPR[instr.i_type.rs] != GPR[instr.i_type.rt]) {
                     next_control_trans = true;
                     delay_npc = pc + (instr.i_type.imm << 2) + 4;
+                    if (instr.i_type.imm < 0) backward_branch_taken ++;
+                    else forward_branch_taken ++;
                 }
                 break;
             }
             case OPCODE_BGTZ: {
                 // BGTZ
                 next_delay_slot = true;
+                if (instr.i_type.imm < 0) backward_branch ++;
+                else forward_branch ++;
                 if (instr.i_type.rt != 0) ri = true;
                 else {
                     if (GPR[instr.i_type.rs] > 0) {
                         next_control_trans = true;
                         delay_npc = pc + (instr.i_type.imm << 2) + 4;
+                        if (instr.i_type.imm < 0) backward_branch_taken ++;
+                        else forward_branch_taken ++;
                     }
                 }
                 break;
@@ -398,11 +420,15 @@ private:
             case OPCODE_BLEZ: {
                 // BLEZ
                 next_delay_slot = true;
+                if (instr.i_type.imm < 0) backward_branch ++;
+                else forward_branch ++;
                 if (instr.i_type.rt != 0) ri = true;
                 else {
                     if (GPR[instr.i_type.rs] <= 0) {
                         next_control_trans = true;
                         delay_npc = pc + (instr.i_type.imm << 2) + 4;
+                        if (instr.i_type.imm < 0) backward_branch_taken ++;
+                        else forward_branch_taken ++;
                     }
                 }
                 break;
@@ -412,37 +438,53 @@ private:
                     case RT_BGEZ: {
                         // BGEZ
                         next_delay_slot = true;
+                        if (instr.i_type.imm < 0) backward_branch ++;
+                        else forward_branch ++;
                         if (GPR[instr.i_type.rs] >= 0) {
                             next_control_trans = true;
                             delay_npc = pc + (instr.i_type.imm << 2) + 4;
+                            if (instr.i_type.imm < 0) backward_branch_taken ++;
+                            else forward_branch_taken ++;
                         }
                         break;
                     }
                     case RT_BLTZ: {
                         // BLTZ
                         next_delay_slot = true;
+                        if (instr.i_type.imm < 0) backward_branch ++;
+                        else forward_branch ++;
                         if (GPR[instr.i_type.rs] < 0) {
                             next_control_trans = true;
                             delay_npc = pc + (instr.i_type.imm << 2) + 4;
+                            if (instr.i_type.imm < 0) backward_branch_taken ++;
+                            else forward_branch_taken ++;
                         }
                         break;
                     }
                     case RT_BGEZAL: {
                         // BGEZAL
                         next_delay_slot = true;
+                        if (instr.i_type.imm < 0) backward_branch ++;
+                        else forward_branch ++;
                         if (GPR[instr.i_type.rs] >= 0) {
                             next_control_trans = true;
                             delay_npc = pc + (instr.i_type.imm << 2) + 4;
+                            if (instr.i_type.imm < 0) backward_branch_taken ++;
+                            else forward_branch_taken ++;
                         }
                         set_GPR(31, pc + 8);
                         break;
                     }
                     case RT_BLTZAL: {
                         // BLTZAL
+                        if (instr.i_type.imm < 0) backward_branch ++;
+                        else forward_branch ++;
                         next_delay_slot = true;
                         if (GPR[instr.i_type.rs] < 0) {
                             next_control_trans = true;
                             delay_npc = pc + (instr.i_type.imm << 2) + 4;
+                            if (instr.i_type.imm < 0) backward_branch_taken ++;
+                            else forward_branch_taken ++;
                         }
                         set_GPR(31, pc + 8);
                         break;
@@ -610,6 +652,7 @@ private:
         if (!cp0.need_trap()) {
             if (cur_control_trans) pc = delay_npc;
             else pc = pc + 4;
+            insret ++;
         }
         else {
             pc = cp0.get_trap_pc();
@@ -625,7 +668,7 @@ private:
             exit(1);
         }
     }
-    uint32_t pc;
+    uint32_t pc;    
     bool next_delay_slot = false;
     bool in_delay_slot = false;
     bool next_control_trans = false;
