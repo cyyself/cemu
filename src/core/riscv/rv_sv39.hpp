@@ -22,6 +22,7 @@ struct sv39_tlb_entry {
 };
 
 uint64_t pa_pc;
+extern uint64_t cache_watchpoint;
 
 /*
 void myassert(bool exp, uint64_t satp, uint64_t va, const char* msg = "") {
@@ -65,6 +66,12 @@ public:
         // we should raise access fault before call sv39
         sv39_tlb_entry *res = local_tlb_get(satp,va);
         if (res) {
+            if (va == 0x1918c0) {
+                if (cache_watchpoint != res->ppa) {
+                    cache_watchpoint = res->ppa;
+                    printf("\n\nwatch point set to %lx\n\n",cache_watchpoint);
+                }
+            }
             /*
             sv39_pte pte2;
             uint64_t page_size2;

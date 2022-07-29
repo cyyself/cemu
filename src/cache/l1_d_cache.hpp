@@ -6,6 +6,8 @@
 #include <bitset>
 #include "tree_plru.hpp"
 
+extern uint64_t cache_watchpoint;
+
 template <int nr_ways = 4, int sz_cache_line = 64, int nr_sets = 64>
 struct l1_d_cache_set {
     uint64_t tag[nr_ways];

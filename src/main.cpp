@@ -18,6 +18,8 @@ bool riscv_test = false;
 rv_core *rv_0_ptr;
 rv_core *rv_1_ptr;
 
+uint64_t cache_watchpoint;
+
 void uart_input(uartlite &uart) {
     termios tmp;
     tcgetattr(STDIN_FILENO,&tmp);

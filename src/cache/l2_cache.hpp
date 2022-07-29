@@ -12,6 +12,8 @@
 #include <vector>
 #include "co_slave.hpp"
 
+extern uint64_t cache_watchpoint;
+
 enum l2_line_status {
     L2_INVALID, L2_OWNED, L2_SHARED, L2_SLAVE_EXCLUSIVE
 };
@@ -73,6 +75,9 @@ public:
     // Cached and coherence operations {
     void acquire_exclusive(uint64_t start_addr, int slave_id) {
         // slave should already acquired shared
+        if ((start_addr >> 6) == (cache_watchpoint >> 6)) {
+            printf("acquired exclusive by slave %d\n",slave_id);
+        }
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(start_addr)];
         int way_id;
         assert(select_set->match(start_addr, way_id));
@@ -87,6 +92,9 @@ public:
     void release_shared(uint64_t start_addr, int slave_id) {
         // slave should already acquired shared
         // This happends when l1d replace.
+        if ((start_addr >> 6) == (cache_watchpoint >> 6)) {
+            printf("release shared by slave %d\n",slave_id);
+        }
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(start_addr)];
         int way_id;
         assert(select_set->match(start_addr, way_id));
@@ -99,6 +107,9 @@ public:
     
     bool cache_line_fetch(uint64_t start_addr, uint8_t *buffer, int slave_id) {
         // after this, the slave got shared status
+        if ((start_addr >> 6) == (cache_watchpoint >> 6)) {
+            printf("cache line fetch by slave %d\n",slave_id);
+        }
         start_addr -= start_addr % sz_cache_line;
         if (!l2_include(start_addr)) return false;
         l2_return_to_shared(start_addr);
@@ -120,6 +131,9 @@ public:
             call release_shared function.
          */
         start_addr -= start_addr % sz_cache_line;
+        if ((start_addr >> 6) == (cache_watchpoint >> 6)) {
+            printf("cache line fetch by slave %d\n",slave_id);
+        }
         l2cache_set <nr_ways, sz_cache_line, nr_sets, nr_max_slave> *select_set = &set_data[get_index(start_addr)];
         int way_id;
         assert(select_set->match(start_addr, way_id));

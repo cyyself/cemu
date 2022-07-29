@@ -6,6 +6,8 @@
 #include <utility>
 #include <climits>
 
+extern uint64_t cache_watchpoint;
+
 class memory_bus : public memory {
 public:
     bool add_dev(unsigned long start_addr, unsigned long length, memory *dev) {
