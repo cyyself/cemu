@@ -2,13 +2,14 @@
 #define MIPS_CP0
 
 #include "mips_common.hpp"
+#include "mips_mmu.hpp"
 #include <cstdint>
 #include <cassert>
 #include <cstdio>
 template <uint32_t nr_tlb_entry = 8>
 class mips_cp0 {
 public:
-    mips_cp0(uint32_t &pc, bool &bd):pc(pc),bd(bd) {
+    mips_cp0(uint32_t &pc, bool &bd, mips_mmu<nr_tlb_entry> &mmu):pc(pc),bd(bd),mmu(mmu) {
         reset();
     }
     void reset() {
@@ -237,8 +238,6 @@ public:
                 errorepc = value;
                 break;
             default: {
-                printf("%x\n",pc);
-                assert(false);
                 break;
             }
         }
@@ -299,6 +298,8 @@ private:
             raise_trap(EXC_INT);
         }
     }
+    mips_mmu<nr_tlb_entry> &mmu;
+
     uint32_t &pc;
     bool &bd;
 

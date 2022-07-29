@@ -11,17 +11,20 @@
 
 class mips_core {
 public:
-    mips_core(memory_bus &bus):mmu(bus),cp0(pc,in_delay_slot) {
+    mips_core(memory_bus &bus):mmu(bus),cp0(pc,in_delay_slot,mmu) {
         reset();
     }
-    void step() {
-        exec();
+    void step(uint8_t ext_int = 0) {
+        exec(ext_int);
     }
     void set_GPR(uint8_t GPR_index, int32_t value) {
         GPR[GPR_index] = value;
         debug_wb_wen = 0xfu;
         debug_wb_wnum = GPR_index;
         debug_wb_wdata = value;
+    }
+    void jump(uint32_t new_pc) {
+        pc = new_pc;
     }
     void reset() {
         pc = 0xbfc00000;
@@ -59,7 +62,7 @@ public:
     bool     debug_wb_is_timer;
     // TODO: trace with exceptions (add exception signal at commit stage is need)
 private:
-    void exec() {
+    void exec(uint8_t ext_int) {
         in_delay_slot = next_delay_slot;
         next_delay_slot = false;
         cur_control_trans = next_control_trans;
@@ -72,7 +75,7 @@ private:
         debug_wb_is_timer = false;
         mips_instr instr;
         mips32_exccode if_exc = EXC_OK;
-        cp0.pre_exec(0);
+        cp0.pre_exec(ext_int);
         if (cp0.need_trap()) goto ctrl_trans_and_exception;
         pc_trace.push(pc);
         if (pc_trace.size() > 16) pc_trace.pop();
@@ -708,7 +711,8 @@ private:
                                 cp0.eret();
                                 break;
                             default:
-                                assert(false);
+                                break;
+                                // TODO: trap
                         }
                         break;
                     }
@@ -749,7 +753,7 @@ private:
     uint32_t delay_npc;
     int32_t GPR[32];
     uint32_t hi,lo;
-    mips_mmu mmu;
+    mips_mmu<8> mmu;
     mips_cp0<8> cp0;
     std::queue <uint32_t> pc_trace;
 };

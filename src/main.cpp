@@ -1,11 +1,29 @@
 #include <iostream>
 #include <bitset>
 #include <cassert>
+#include <thread>
+#include <termios.h>
+#include <cassert>
+#include <unistd.h>
+#include <csignal>
 
 #include "mips_core.hpp"
 #include "nscscc_confreg.hpp"
 #include "memory_bus.hpp"
 #include "ram.hpp"
+#include "uart8250.hpp"
+
+void uart_input(uart8250 &uart) {
+    termios tmp;
+    tcgetattr(STDIN_FILENO,&tmp);
+    tmp.c_lflag &=(~ICANON & ~ECHO);
+    tcsetattr(STDIN_FILENO,TCSANOW,&tmp);
+    while (true) {
+        char c = getchar();
+        if (c == 10) c = 13; // convert lf to cr
+        uart.putc(c);
+    }
+}
 
 void nscscc_func() {
     memory_bus mmio;
@@ -71,8 +89,61 @@ void nscscc_perf() {
     }
 }
 
+bool send_ctrl_c;
+
+void sigint_handler(int x) {
+    static time_t last_time;
+    if (time(NULL) - last_time < 1) exit(0);
+    last_time = time(NULL);
+    send_ctrl_c = true;
+}
+
+void ucore_run(int argc, const char* argv[]) {
+    signal(SIGINT, sigint_handler);
+
+    memory_bus cemu_mmio;
+
+    ram cemu_memory(128*1024*1024, "../ucore-thumips/obj/ucore-kernel-initrd.bin");
+    assert(cemu_mmio.add_dev(0,128*1024*1024,&cemu_memory));
+
+    // uart8250 at 0x1fe40000 (APB)
+    uart8250 uart;
+    std::thread *uart_input_thread = new std::thread(uart_input,std::ref(uart));
+    assert(cemu_mmio.add_dev(0x1fe40000,0x10000,&uart));
+
+    mips_core mips(cemu_mmio);
+    mips.jump(0x80000000u);
+    uint32_t lastpc = 0;
+    bool delay_cr = false;
+    while (true) {
+        mips.step(uart.irq() << 2);
+        while (uart.exist_tx()) {
+            char c = uart.getc();
+            if (c == '\r') delay_cr = true;
+            else {
+                if (delay_cr && c != '\n') std::cout << "\r" << c;
+                else std::cout << c;
+                std::cout.flush();
+                delay_cr = false;
+            }
+            // uart_history[uart_history_idx] = c;
+            // uart_history_idx = (uart_history_idx + 1) % 8;
+        }
+        if (send_ctrl_c) {
+            uart.putc(3);
+            send_ctrl_c = false;
+        }
+        if (mips.get_pc() == lastpc) {
+            printf("error!\n");
+            exit(1);
+        }
+        else lastpc = mips.get_pc();
+    }
+}
+
 int main(int argc, const char* argv[]) {
-    nscscc_func();
-    nscscc_perf();
+    // nscscc_func();
+    // nscscc_perf();
+    ucore_run(argc, argv);
     return 0;
 }

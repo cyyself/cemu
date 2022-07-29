@@ -5,6 +5,7 @@
 #include "mips_common.hpp"
 #include <cstdint>
 
+template <uint32_t nr_tlb_entry = 8>
 class mips_mmu {
 public:
     mips_mmu(memory_bus &bus):bus(bus) {
