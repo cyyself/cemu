@@ -326,6 +326,80 @@ private:
                 }
                 break;
             }
+            case OPCODE_SPECIAL2: {
+                switch (instr.r_type.funct) {
+                    case FUNCT_MUL: {
+                        if (instr.r_type.sa) ri = true;
+                        else {
+                            set_GPR(instr.r_type.rd, GPR[instr.r_type.rs] * GPR[instr.r_type.rt]);
+                        }
+                        break;
+                    }
+                    case FUNCT_MADD: {
+                        if (instr.r_type.sa || instr.r_type.rd) ri = true;
+                        else {
+                            uint64_t result = (((hi*1llu) << 32) + lo*11lu) + static_cast<int64_t>(GPR[instr.r_type.rs]) * static_cast<int64_t>(GPR[instr.r_type.rt]);
+                            lo = result;
+                            hi = result >> 32;
+                        }
+                        break;
+                    }
+                    case FUNCT_MADDU: {
+                        if (instr.r_type.sa || instr.r_type.rd) ri = true;
+                        else {
+                            uint64_t result = (((hi*1llu) << 32) + lo*11lu) + static_cast<uint32_t>(GPR[instr.r_type.rs])*1llu * static_cast<uint32_t>(GPR[instr.r_type.rt]);
+                            lo = result;
+                            hi = result >> 32;
+                        }
+                        break;
+                    }
+                    case FUNCT_MSUB: {
+                        if (instr.r_type.sa || instr.r_type.rd) ri = true;
+                        else {
+                            uint64_t result = (((hi*1llu) << 32) + lo*11lu) - static_cast<int64_t>(GPR[instr.r_type.rs]) * static_cast<int64_t>(GPR[instr.r_type.rt]);
+                            lo = result;
+                            hi = result >> 32;
+                        }
+                        break;
+                    }
+                    case FUNCT_MSUBU: {
+                        if (instr.r_type.sa || instr.r_type.rd) ri = true;
+                        else {
+                            uint64_t result = (((hi*1llu) << 32) + lo*11lu) - static_cast<uint32_t>(GPR[instr.r_type.rs])*1llu * static_cast<uint32_t>(GPR[instr.r_type.rt]);
+                            lo = result;
+                            hi = result >> 32;
+                        }
+                        break;
+                    }
+                    case FUNCT_CLO: {
+                        if (instr.r_type.sa) ri = true;
+                        else {
+                            int res = 32;
+                            for (int i=31;i>=0;i--) if (((GPR[instr.r_type.rs] >> i) & 1) == 0) {
+                                res = 31 - i;
+                                break;
+                            }
+                            set_GPR(instr.r_type.rd, res);
+                        }
+                        break;
+                    }
+                    case FUNCT_CLZ: {
+                        if (instr.r_type.sa) ri = true;
+                        else {
+                            int res = 32;
+                            for (int i=31;i>=0;i--) if ((GPR[instr.r_type.rs] >> i) & 1) {
+                                res = 31 - i;
+                                break;
+                            }
+                            set_GPR(instr.r_type.rd, res);
+                        }
+                        break;
+                    }
+                    default:
+                        ri = true;
+                }
+                break;
+            }
             case OPCODE_ADDI: {
                 int64_t result = static_cast<int64_t>(GPR[instr.i_type.rs]) + instr.i_type.imm;
                 if ( ((result >> 32) & 1) != ((result >> 31) & 1)) {
@@ -674,7 +748,7 @@ private:
     bool cur_control_trans = false;
     uint32_t delay_npc;
     int32_t GPR[32];
-    int32_t hi,lo;
+    uint32_t hi,lo;
     mips_mmu mmu;
     mips_cp0<8> cp0;
     std::queue <uint32_t> pc_trace;
