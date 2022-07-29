@@ -81,7 +81,6 @@ private:
             cp0.raise_trap(if_exc, pc);
             goto ctrl_trans_and_exception;
         }
-    id_exe_stage:
         switch (instr.i_type.opcode) {
             case OPCODE_SPECIAL: {
                 switch (instr.r_type.funct) {
@@ -677,7 +676,7 @@ private:
     int32_t GPR[32];
     int32_t hi,lo;
     mips_mmu mmu;
-    mips_cp0 cp0;
+    mips_cp0<8> cp0;
     std::queue <uint32_t> pc_trace;
 };
 

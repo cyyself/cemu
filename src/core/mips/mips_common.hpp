@@ -182,18 +182,111 @@ struct cp0_cause {
     unsigned int IP : 8; // IP1 and IP0 is writeable
     unsigned int blank2 : 7;
     unsigned int IV : 1; // interrupt vector 0: 0x180, 1: 0x200
-    unsigned int blank3 : 6;
-    unsigned int TI : 1; // Timer Interrupt
+    unsigned int blank3 : 7;
+    // MIPS Release 1: NO TI
     unsigned int BD : 1; // last exception taken occurred in a branch delay slot
 };
 
 enum cp0_rd {
+    RD_INDEX    = 0,
+    RD_RANDOM   = 1,
+    RD_ENTRYLO0 = 2,
+    RD_ENTRYLO1 = 3,
+    RD_CONTEXT  = 4,
+    RD_PAGEMASK = 5,
+    RD_WIRED    = 6,
     RD_BADVA    = 8,
     RD_COUNT    = 9,
+    RD_ENTRYHI  = 10,
     RD_COMPARE  = 11,
     RD_STATUS   = 12,
     RD_CAUSE    = 13,
-    RD_EPC      = 14
+    RD_EPC      = 14,
+    RD_PRID_EBASE = 15, // PRID, EBase
+    RD_CONFIG   = 16, // 0:Config0, 1:Config1
+    RD_TAGLO    = 28, // select 0, select 2
+    RD_TAGHI    = 29, // select 0, select 2
+    RD_ERREPC   = 30
 };
+
+enum CCA : unsigned int {
+    CCA_Uncached = 2,
+    CCA_Cacheable = 3
+};
+
+struct cp0_config0 {
+    unsigned int k0 : 3; // Kseg0 cacheability and coherency
+    unsigned int VI : 1; // Virtual instruction cache
+    unsigned int blank0 : 3;
+    unsigned int MT : 3; // MMU Type: 1: Standard TLB
+    unsigned int AR : 3; // MIPS32 Architecture revision level. 1: Release 2
+    unsigned int AT : 2; // Architecture Type 1: MIPS32
+    unsigned int BE : 1; // 0: Little endian
+    unsigned int Impl : 9; // 0
+    unsigned int KU : 3; // 0 for TLB
+    unsigned int K23 : 3; // 0 for TLB
+    unsigned int M : 1; // 1
+};
+
+struct cp0_config1 {
+    unsigned int FP : 1; // no FPU: 0
+    unsigned int EP : 1; // no EJTAG : 0
+    unsigned int CA : 1; // no Code compression: 0
+    unsigned int WR : 1; // no Watch registers: 0
+    unsigned int PC : 1; // no performance counter: 0
+    unsigned int MD : 1; // no MDMX: 0
+    unsigned int C2 : 1; // no CP2: 0
+    unsigned int DA : 3; // Dcache associativity: 1: 2-way 3: 4-way
+    unsigned int DL : 3; // Dcache line size: 3: 16bytes, 4: 32bytes, 5: 64bytes
+    unsigned int DS : 3; // Dcache sets per way: 0:64, 1:128, 2:256, 3: 512
+    unsigned int IA : 3; // Icache associativity
+    unsigned int IL : 3; // Icache line size
+    unsigned int IS : 3; // Icache sets per way
+    unsigned int MS : 6; // MMU Size - 1
+    unsigned int M; // Config2 is present: 0
+};
+
+struct cp0_entrylo {
+    unsigned int G : 1; // Global
+    unsigned int V : 1; // Valid
+    unsigned int D : 1; // Dirty
+    unsigned int C : 3; // Cacheability and Coherency
+    unsigned int PFN : 24; // Page Frame Number
+    unsigned int F : 2; // Fill
+};
+
+struct cp0_context {
+    unsigned int blank0 : 4;
+    unsigned int badvpn2 : 19;
+    unsigned int PTEBase : 9;
+};
+
+struct cp0_pagemask {
+    unsigned int blank0 : 13;
+    // no 1KB page support, no MaskX
+    unsigned int Mask : 16; 
+    /*
+        Software may determine which page sizes are 
+        supported by writing all ones to the PageMask 
+        register, then reading the value back. If a 
+        pair of bits reads back as ones, the processor 
+        implements that page size.
+     */
+    unsigned int blank1 : 3;
+};
+
+enum HWR_Numbers: unsigned int {
+    HWR_CPUNum = 0,
+    HWR_SYNCI_Step = 1,
+    HWR_CC = 2,
+    HWR_CCRes = 3
+};
+
+struct cp0_entryhi {
+    unsigned int ASID : 8;
+    unsigned int blank0 : 5;
+    unsigned int VPN2 : 19;
+};
+
 
 #endif

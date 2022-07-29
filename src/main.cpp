@@ -24,7 +24,7 @@ void nscscc_func() {
 
     mips_core mips(mmio);
 
-    int test_point = 0;
+    uint32_t test_point = 0;
     bool running = true;
     while (running) {
         mips.step();
