@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <cassert>
 #include <cstdio>
-template <uint32_t nr_tlb_entry = 8>
+template <int nr_tlb_entry = 8>
 class mips_cp0 {
 public:
     mips_cp0(uint32_t &pc, bool &bd, mips_mmu<nr_tlb_entry> &mmu):pc(pc),bd(bd),mmu(mmu) {
@@ -151,10 +151,10 @@ public:
                 assert(sel == 0);
                 break;
             case RD_ENTRYLO0:
-                entrylo0 = value & 0x0fffffffu; // mask higher 32bit PFN
+                entrylo0 = value & 0x03ffffffu; // mask higher 32bit PFN
                 break;
             case RD_ENTRYLO1:
-                entrylo1 = value & 0x0fffffffu; // mask higher 32bit PFN
+                entrylo1 = value & 0x03ffffffu; // mask higher 32bit PFN
                 break;
             case RD_CONTEXT: {
                 cp0_context *context_reg = (cp0_context*)&context;
@@ -286,9 +286,75 @@ public:
         if (status_reg->ERL) status_reg->ERL = 0;
         else status_reg->EXL = 0;
     }
+    void tlbp() {
+        uint8_t index_result;
+        cp0_entryhi *entryhi_reg = (cp0_entryhi*)&entryhi;
+        bool res = mmu.probe_index(index_result, entryhi_reg->VPN2 << 13, get_asid());
+        if (res) index = index_result;
+        else index = 0x80000000u | index;
+    }
+    void tlbr() {
+        mips_tlb tlbe = mmu.get_tlb(index);
+        // only 4KB supported, no pagemask.
+        cp0_entrylo *entrylo0_reg = (cp0_entrylo*)&entrylo0;
+        cp0_entrylo *entrylo1_reg = (cp0_entrylo*)&entrylo1;
+        cp0_entryhi *entryhi_reg  = (cp0_entryhi*)&entryhi;
+        entrylo0_reg->G = tlbe.G;
+        entrylo0_reg->V = tlbe.V0;
+        entrylo0_reg->D = tlbe.D0;
+        entrylo0_reg->C = tlbe.C0;
+        entrylo0_reg->PFN = tlbe.PFN0;
+        entrylo1_reg->G = tlbe.G;
+        entrylo1_reg->V = tlbe.V1;
+        entrylo1_reg->D = tlbe.D1;
+        entrylo1_reg->C = tlbe.C1;
+        entrylo1_reg->PFN = tlbe.PFN1;
+        entryhi_reg->ASID = tlbe.ASID;
+        entryhi_reg->VPN2 = tlbe.VPN2;
+    }
+    void tlbwi() {
+        mips_tlb tlbe;
+        cp0_entrylo *entrylo0_reg = (cp0_entrylo*)&entrylo0;
+        cp0_entrylo *entrylo1_reg = (cp0_entrylo*)&entrylo1;
+        cp0_entryhi *entryhi_reg  = (cp0_entryhi*)&entryhi;
+        tlbe.G = entrylo0_reg->G && entrylo1_reg->G;
+        tlbe.V0 = entrylo0_reg->V;
+        tlbe.D0 = entrylo0_reg->D;
+        tlbe.C0 = entrylo0_reg->C;
+        tlbe.PFN0 = entrylo0_reg->PFN;
+        tlbe.V1 = entrylo1_reg->V;
+        tlbe.D1 = entrylo1_reg->D;
+        tlbe.C1 = entrylo1_reg->C;
+        tlbe.PFN1 = entrylo1_reg->PFN;
+        tlbe.VPN2 = entryhi_reg->VPN2;
+        tlbe.ASID = entryhi_reg->ASID;
+        mmu.tlbw(tlbe, index);
+    }
+    void tlbwr() {
+        mips_tlb tlbe;
+        cp0_entrylo *entrylo0_reg = (cp0_entrylo*)&entrylo0;
+        cp0_entrylo *entrylo1_reg = (cp0_entrylo*)&entrylo1;
+        cp0_entryhi *entryhi_reg  = (cp0_entryhi*)&entryhi;
+        tlbe.G = entrylo0_reg->G && entrylo1_reg->G;
+        tlbe.V0 = entrylo0_reg->V;
+        tlbe.D0 = entrylo0_reg->D;
+        tlbe.C0 = entrylo0_reg->C;
+        tlbe.PFN0 = entrylo0_reg->PFN;
+        tlbe.V1 = entrylo1_reg->V;
+        tlbe.D1 = entrylo1_reg->D;
+        tlbe.C1 = entrylo1_reg->C;
+        tlbe.PFN1 = entrylo1_reg->PFN;
+        tlbe.VPN2 = entryhi_reg->VPN2;
+        tlbe.ASID = entryhi_reg->ASID;
+        mmu.tlbw(tlbe, random);
+    }
     mips32_ksu get_ksu() {
         cp0_status *status_def = (cp0_status*)&status;
         return (status_def->EXL || status_def->ERL || status_def->KSU == KERNEL_MODE) ? KERNEL_MODE : USER_MODE;
+    }
+    uint8_t get_asid() {
+        cp0_entryhi *entryhi_reg = (cp0_entryhi*)&entryhi;
+        return entryhi_reg->ASID;
     }
 private:
     void check_and_raise_int() {

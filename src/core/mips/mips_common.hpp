@@ -251,8 +251,8 @@ struct cp0_entrylo {
     unsigned int V : 1; // Valid
     unsigned int D : 1; // Dirty
     unsigned int C : 3; // Cacheability and Coherency
-    unsigned int PFN : 24; // Page Frame Number
-    unsigned int F : 2; // Fill
+    unsigned int PFN : 20; // Page Frame Number
+    unsigned int F : 6; // Fill
 };
 
 struct cp0_context {
@@ -288,5 +288,18 @@ struct cp0_entryhi {
     unsigned int VPN2 : 19;
 };
 
+struct mips_tlb {
+    unsigned int G : 1;
+    unsigned int V0 : 1;
+    unsigned int V1 : 1;
+    unsigned int D0 : 2;
+    unsigned int D1 : 2;
+    unsigned int C0 : 3;
+    unsigned int C1 : 3;
+    unsigned int PFN0 : 20;
+    unsigned int PFN1 : 20;
+    unsigned int VPN2 : 19;
+    unsigned int ASID : 8;
+};
 
 #endif
