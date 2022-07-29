@@ -217,7 +217,7 @@ public:
                 break;
             case RD_PRID_EBASE: {
                 // only ebase writeable
-                ebase = 0x80000000u | (value & 0x3fff0000u);
+                ebase = 0x80000000u | (value & 0x3ffff000u);
                 assert(sel == 1);
                 break;
             }
