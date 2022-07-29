@@ -151,10 +151,10 @@ public:
                 assert(sel == 0);
                 break;
             case RD_ENTRYLO0:
-                entrylo0 = value & 0x1fffffffu; // mask higher 32bit PFN
+                entrylo0 = value & 0x0fffffffu; // mask higher 32bit PFN
                 break;
             case RD_ENTRYLO1:
-                entrylo1 = value & 0x1fffffffu; // mask higher 32bit PFN
+                entrylo1 = value & 0x0fffffffu; // mask higher 32bit PFN
                 break;
             case RD_CONTEXT: {
                 cp0_context *context_reg = (cp0_context*)&context;
