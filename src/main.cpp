@@ -141,9 +141,59 @@ void ucore_run(int argc, const char* argv[]) {
     }
 }
 
+void linux_run(int argc, const char* argv[]) {
+    signal(SIGINT, sigint_handler);
+
+    memory_bus cemu_mmio;
+
+    ram cemu_memory(128*1024*1024, "../linux/vmlinux.bin");
+    assert(cemu_mmio.add_dev(0,128*1024*1024,&cemu_memory));
+
+    // uart8250 at 0x1fe40000 (APB)
+    uart8250 uart;
+    std::thread *uart_input_thread = new std::thread(uart_input,std::ref(uart));
+    assert(cemu_mmio.add_dev(0x1fe40000,0x10000,&uart));
+
+    mips_core mips(cemu_mmio);
+    mips.jump(0x80000000u);
+    uint32_t lastpc = 0;
+    bool delay_cr = false;
+    while (true) {
+        mips.step(uart.irq() << 1);
+        while (uart.exist_tx()) {
+            char c = uart.getc();
+            if (c == '\r') delay_cr = true;
+            else {
+                if (delay_cr && c != '\n') std::cout << "\r" << c;
+                else std::cout << c;
+                std::cout.flush();
+                delay_cr = false;
+            }
+            // uart_history[uart_history_idx] = c;
+            // uart_history_idx = (uart_history_idx + 1) % 8;
+        }
+        if (send_ctrl_c) {
+            uart.putc(3);
+            send_ctrl_c = false;
+        }
+        if (mips.get_pc() == lastpc) {
+            while (!mips.pc_trace.empty()) {
+                printf("%x\n",mips.pc_trace.front());
+                mips.pc_trace.pop();
+            }
+            printf("error!\n");
+            exit(1);
+        }
+        else {
+            lastpc = mips.get_pc();
+        }
+    }
+}
+
 int main(int argc, const char* argv[]) {
     // nscscc_func();
     // nscscc_perf();
     ucore_run(argc, argv);
+    // linux_run(argc, argv);
     return 0;
 }

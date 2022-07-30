@@ -61,6 +61,7 @@ public:
     uint8_t  debug_wb_wnum;
     uint32_t debug_wb_wdata;
     bool     debug_wb_is_timer;
+    std::queue <uint32_t> pc_trace;
     // TODO: trace with exceptions (add exception signal at commit stage is need)
 private:
     void exec(uint8_t ext_int) {
@@ -776,7 +777,6 @@ private:
     uint32_t hi,lo;
     mips_mmu<8> mmu;
     mips_cp0<8> cp0;
-    std::queue <uint32_t> pc_trace;
 };
 
 
