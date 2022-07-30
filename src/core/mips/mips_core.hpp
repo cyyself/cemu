@@ -325,6 +325,10 @@ private:
                         cp0.raise_trap(EXC_SYS);
                         break;
                     }
+                    case FUNCT_SYNC: {
+                        // SYNC as NOP
+                        break;
+                    }
                     default:
                         ri = true;
                 }
@@ -732,6 +736,10 @@ private:
                     default:
                         ri = true;
                 }
+                break;
+            }
+            case OPCODE_CACHE: {
+                printf("Cache instruction executed. addr = %x, op = %d\n",instr.i_type.rs + instr.i_type.imm, instr.i_type.rt);
                 break;
             }
             default:
