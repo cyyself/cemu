@@ -5,6 +5,10 @@
 #include "mips_common.hpp"
 #include <cstdint>
 
+void debug() {
+
+}
+
 template <int nr_tlb_entry = 8>
 class mips_mmu {
 public:
@@ -82,25 +86,29 @@ private:
         else {
             mips_tlb *tlbe = tlb_match(va, asid);
             if (!tlbe) return false;
-            if ( (tlbe->G || tlbe->ASID == asid) && ((unsigned int)tlbe->VPN2 >> 13) == (va >> 13)) {
-                if (((va >> 12) & 1) && tlbe->V1) {
-                    dirty = tlbe->D1;
-                    pa = (va & 0xfff) | (tlbe->PFN1 << 12);
-                    return true;
-                }
-                else if (((va >> 12) & 1) == 0 && tlbe->V0) {
-                    dirty = tlbe->D0;
-                    pa = (va & 0xfff) | (tlbe->PFN0 << 12);
-                    return true;
-                }
-                else return false;
+            if (((va >> 12) & 1) && tlbe->V1) {
+                dirty = tlbe->D1;
+                pa = (va & 0xfff) | (tlbe->PFN1 << 12);
+                // printf("pa ok! pa=%x\n", pa);
+                return true;
             }
-            else return false;
+            else if (((va >> 12) & 1) == 0 && tlbe->V0) {
+                dirty = tlbe->D0;
+                pa = (va & 0xfff) | (tlbe->PFN0 << 12);
+                // printf("pa ok! pa=%x\n", pa);
+                return true;
+            }
+            else {
+                // printf("tlblo err\n");
+                return false;
+            }
         }
     }
     mips_tlb* tlb_match(uint32_t va, uint8_t asid) {
+        // printf("tlb match %x\n",va);
         for (int i=0;i<nr_tlb_entry;i++) {
             if ((asid == tlb[i].ASID || tlb[i].G) && tlb[i].VPN2 == (va >> 13)) {
+                // printf("tlb found!\n");
                 return &tlb[i];
             }
         }

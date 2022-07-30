@@ -197,7 +197,7 @@ public:
                 status_reg->KSU = status_new->KSU == USER_MODE ? USER_MODE : KERNEL_MODE;
                 status_reg->IM = status_new->IM;
                 if (status_reg->BEV != status_new->BEV) {
-                    printf("bev changed at pc %x to %x\n",pc,status_new->BEV);
+                    // printf("bev changed at pc %x to %x\n",pc,status_new->BEV);
                 }
                 status_reg->BEV = status_new->BEV;
                 assert(sel == 0);
@@ -346,6 +346,7 @@ public:
         tlbe.PFN1 = entrylo1_reg->PFN;
         tlbe.VPN2 = entryhi_reg->VPN2;
         tlbe.ASID = entryhi_reg->ASID;
+        // tlbe.print();
         mmu.tlbw(tlbe, random);
     }
     mips32_ksu get_ksu() {

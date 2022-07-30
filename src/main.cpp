@@ -116,7 +116,7 @@ void ucore_run(int argc, const char* argv[]) {
     uint32_t lastpc = 0;
     bool delay_cr = false;
     while (true) {
-        mips.step(uart.irq() << 2);
+        mips.step(uart.irq() << 1);
         while (uart.exist_tx()) {
             char c = uart.getc();
             if (c == '\r') delay_cr = true;
