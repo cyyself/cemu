@@ -710,15 +710,19 @@ private:
                 else {
                     switch (vaddr % 2) {
                         case 0:
-                            buf = (GPR[instr.i_type.rt] & 0x00ffffffu) | (buf << 24);
+                            buf = (buf << 24) | (GPR[instr.i_type.rt] & 0x00ffffffu);
                             break;
                         case 1:
-                            buf = (GPR[instr.i_type.rt] & 0x0000ffffu) | (buf << 16);
+                            buf = (buf << 16) | (GPR[instr.i_type.rt] & 0x0000ffffu);
                             break;
                         case 2:
-                            buf = (GPR[instr.i_type.rt] & 0x000000ffu) | buf << 8;
+                            buf = (buf << 8) | (GPR[instr.i_type.rt] & 0x000000ffu);
+                            break;
+                        case 3:
+                            buf = buf;
                             break;
                         default:
+                            assert(false);
                             break;
                     }
                     set_GPR(instr.i_type.rt, buf);
@@ -732,16 +736,19 @@ private:
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr);
                 else {
                     switch (vaddr % 2) {
+                        case 0:
+                            buf = buf;
                         case 1:
-                            buf = (GPR[instr.i_type.rt] & 0xff000000u) | (buf >> 8);
+                            buf = (buf >> 8) | (GPR[instr.i_type.rt] & 0xff000000u);
                             break;
                         case 2:
-                            buf = (GPR[instr.i_type.rt] & 0xffff0000u) | (buf >> 16);
+                            buf = (buf >> 16) | (GPR[instr.i_type.rt] & 0xffff0000u);
                             break;
                         case 3:
-                            buf = (GPR[instr.i_type.rt] & 0xffffff00u) | (buf >> 24);
+                            buf = (buf >> 24) | (GPR[instr.i_type.rt] & 0xffffff00u);;
                             break;
                         default:
+                            assert(false);
                             break;
                     }
                     set_GPR(instr.i_type.rt, buf);
@@ -775,24 +782,26 @@ private:
                 uint32_t buf;
                 mips32_exccode stat = mmu.va_read(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid());
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr);
-                switch (vaddr % 2) {
-                    case 0:
-                        buf = (GPR[instr.i_type.rt] >> 24) | (buf & 0xffffff00u);
-                        break;
-                    case 1:
-                        buf = (GPR[instr.i_type.rt] >> 16) | (buf & 0xffff0000u);
-                        break;
-                    case 2:
-                        buf = (GPR[instr.i_type.rt] >> 8) | (buf & 0xffffff00u);
-                        break;
-                    case 3:
-                        buf = GPR[instr.i_type.rt];
-                        break;
-                    default:
-                        assert(false);
+                else {
+                    switch (vaddr % 2) {
+                        case 0:
+                            buf = (GPR[instr.i_type.rt] >> 24) | (buf & 0xffffff00u);
+                            break;
+                        case 1:
+                            buf = (GPR[instr.i_type.rt] >> 16) | (buf & 0xffff0000u);
+                            break;
+                        case 2:
+                            buf = (GPR[instr.i_type.rt] >> 8) | (buf & 0xffffff00u);
+                            break;
+                        case 3:
+                            buf = GPR[instr.i_type.rt];
+                            break;
+                        default:
+                            assert(false);
+                    }
+                    stat = mmu.va_write(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid());
+                    if (stat != EXC_OK) cp0.raise_trap(stat, vaddr);
                 }
-                stat = mmu.va_write(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid());
-                if (stat != EXC_OK) cp0.raise_trap(stat, vaddr);
                 break;
             }
             case OPCODE_SWR: {
@@ -801,24 +810,26 @@ private:
                 uint32_t buf;
                 mips32_exccode stat = mmu.va_read(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid());
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr);
-                switch (vaddr % 2) {
-                    case 0:
-                        buf = GPR[instr.i_type.rt];
-                        break;
-                    case 1:
-                        buf = (GPR[instr.i_type.rt] << 8) | (buf & 0x000000ffu);
-                        break;
-                    case 2:
-                        buf = (GPR[instr.i_type.rt] << 16) | (buf & 0x0000ffffu);
-                        break;
-                    case 3:
-                        buf = (GPR[instr.i_type.rt] << 24) | (buf & 0x000000ffu);
-                        break;
-                    default:
-                        assert(false);
+                else {
+                    switch (vaddr % 2) {
+                        case 0:
+                            buf = GPR[instr.i_type.rt];
+                            break;
+                        case 1:
+                            buf = (GPR[instr.i_type.rt] << 8) | (buf & 0x000000ffu);
+                            break;
+                        case 2:
+                            buf = (GPR[instr.i_type.rt] << 16) | (buf & 0x0000ffffu);
+                            break;
+                        case 3:
+                            buf = (GPR[instr.i_type.rt] << 24) | (buf & 0x00ffffffu);
+                            break;
+                        default:
+                            assert(false);
+                    }
+                    stat = mmu.va_write(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid());
+                    if (stat != EXC_OK) cp0.raise_trap(stat, vaddr);
                 }
-                stat = mmu.va_write(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid());
-                if (stat != EXC_OK) cp0.raise_trap(stat, vaddr);
                 break;
             }
             case OPCODE_COP0: {
