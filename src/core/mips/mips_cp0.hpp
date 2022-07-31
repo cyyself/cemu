@@ -6,6 +6,9 @@
 #include <cstdint>
 #include <cassert>
 #include <cstdio>
+
+// TODO: Trap on CP0 unuseable (User Mode and !CU[0])
+
 template <int nr_tlb_entry = 8>
 class mips_cp0 {
 public:
@@ -99,6 +102,7 @@ public:
                     case 0:
                         return prid;
                     case 1:
+                        // printf("\nebase set to %x\n",ebase);
                         return ebase;
                     default:
                         assert(false);
@@ -192,6 +196,7 @@ public:
             case RD_STATUS: {
                 cp0_status *status_reg = (cp0_status*)&status;
                 cp0_status *status_new = (cp0_status*)&value;
+                status_reg->CU = status_new->CU & 1; // Only CP0 supported
                 status_reg->IE = status_new->IE;
                 status_reg->EXL = status_new->EXL;
                 status_reg->ERL = status_new->ERL;
@@ -259,6 +264,7 @@ public:
         return trap_pc;
     }
     void raise_trap(mips32_exccode exc, uint32_t badva_val = 0) {
+        // if (exc != EXC_INT) printf("\nTRAP %d\n",exc);
         cur_need_trap = true;
         cp0_status *status_reg = (cp0_status*)&status;
         cp0_cause *cause_reg = (cp0_cause*)&cause;

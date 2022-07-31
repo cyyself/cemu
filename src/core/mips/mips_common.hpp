@@ -175,7 +175,8 @@ struct cp0_status {
     unsigned int IM  : 8; // Interrupt Mask
     unsigned int blank1 : 6;
     unsigned int BEV : 1; // bootstrap exception vector
-    unsigned int blank2 : 9;
+    unsigned int blank2 : 5;
+    unsigned int CU : 4;
 };
 
 struct cp0_cause {
