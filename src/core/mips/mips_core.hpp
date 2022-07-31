@@ -708,7 +708,7 @@ private:
                 mips32_exccode stat = mmu.va_read(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid());
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr);
                 else {
-                    switch (vaddr % 2) {
+                    switch (vaddr % 4) {
                         case 0:
                             buf = (buf << 24) | (GPR[instr.i_type.rt] & 0x00ffffffu);
                             break;
@@ -735,9 +735,10 @@ private:
                 mips32_exccode stat = mmu.va_read(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid());
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr);
                 else {
-                    switch (vaddr % 2) {
+                    switch (vaddr % 4) {
                         case 0:
                             buf = buf;
+                            break;
                         case 1:
                             buf = (buf >> 8) | (GPR[instr.i_type.rt] & 0xff000000u);
                             break;
@@ -783,15 +784,15 @@ private:
                 mips32_exccode stat = mmu.va_read(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid());
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr);
                 else {
-                    switch (vaddr % 2) {
+                    switch (vaddr % 4) {
                         case 0:
-                            buf = (GPR[instr.i_type.rt] >> 24) | (buf & 0xffffff00u);
+                            buf = (((uint32_t)GPR[instr.i_type.rt]) >> 24) | (buf & 0xffffff00u);
                             break;
                         case 1:
-                            buf = (GPR[instr.i_type.rt] >> 16) | (buf & 0xffff0000u);
+                            buf = (((uint32_t)GPR[instr.i_type.rt]) >> 16) | (buf & 0xffff0000u);
                             break;
                         case 2:
-                            buf = (GPR[instr.i_type.rt] >> 8) | (buf & 0xffffff00u);
+                            buf = (((uint32_t)GPR[instr.i_type.rt]) >> 8) | (buf & 0xff000000u);
                             break;
                         case 3:
                             buf = GPR[instr.i_type.rt];
@@ -811,18 +812,18 @@ private:
                 mips32_exccode stat = mmu.va_read(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid());
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr);
                 else {
-                    switch (vaddr % 2) {
+                    switch (vaddr % 4) {
                         case 0:
                             buf = GPR[instr.i_type.rt];
                             break;
                         case 1:
-                            buf = (GPR[instr.i_type.rt] << 8) | (buf & 0x000000ffu);
+                            buf = (((uint32_t)GPR[instr.i_type.rt]) << 8) | (buf & 0x000000ffu);
                             break;
                         case 2:
-                            buf = (GPR[instr.i_type.rt] << 16) | (buf & 0x0000ffffu);
+                            buf = (((uint32_t)GPR[instr.i_type.rt]) << 16) | (buf & 0x0000ffffu);
                             break;
                         case 3:
-                            buf = (GPR[instr.i_type.rt] << 24) | (buf & 0x00ffffffu);
+                            buf = (((uint32_t)GPR[instr.i_type.rt]) << 24) | (buf & 0x00ffffffu);
                             break;
                         default:
                             assert(false);
