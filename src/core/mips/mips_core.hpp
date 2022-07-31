@@ -330,6 +330,20 @@ private:
                         // SYNC as NOP
                         break;
                     }
+                    case FUNCT_MOVN: {
+                        if (instr.r_type.sa) ri = true;
+                        else {
+                            if (GPR[instr.r_type.rt]) set_GPR(instr.r_type.rd, GPR[instr.r_type.rs]);
+                        }
+                        break;
+                    }
+                    case FUNCT_MOVZ: {
+                        if (instr.r_type.sa) ri = true;
+                        else {
+                            if (GPR[instr.r_type.rt] == 0) set_GPR(instr.r_type.rd, GPR[instr.r_type.rs]);
+                        }
+                        break;
+                    }
                     default:
                         ri = true;
                 }
@@ -743,13 +757,36 @@ private:
                 printf("Cache instruction executed. addr = %x, op = %d\n",instr.i_type.rs + instr.i_type.imm, instr.i_type.rt);
                 break;
             }
+            /*
+            case OPCODE_LL: {
+                // LL as LW
+                uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
+                uint32_t buf;
+                if (vaddr == 0xbfafe000u) debug_wb_is_timer = true; // for difftest
+                mips32_exccode stat = mmu.va_read(vaddr, 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid());
+                if (stat != EXC_OK) cp0.raise_trap(stat, vaddr);
+                else set_GPR(instr.i_type.rt, buf);
+                break;
+            }
+            case OPCODE_SC: {
+                // LL as SW but set GPR[rt] to 1
+                uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
+                mips32_exccode stat = mmu.va_write(vaddr, 4, (unsigned char*)&GPR[instr.i_type.rt], cp0.get_ksu(), cp0.get_asid());
+                if (stat != EXC_OK) cp0.raise_trap(stat, vaddr);
+                else set_GPR(instr.i_type.rt, 1);
+                break;
+            }
+            */
             default:
                 ri = true; // unknown opcode
         }
         if (ri) cp0.raise_trap(EXC_RI);
     ctrl_trans_and_exception:
         if (!cp0.need_trap()) {
-            if (cur_control_trans) pc = delay_npc;
+            if (cur_control_trans) {
+                pc = delay_npc;
+                // printf("branch/jump to %x\n",pc);
+            }
             else pc = pc + 4;
             insret ++;
         }

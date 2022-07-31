@@ -5,10 +5,6 @@
 #include "mips_common.hpp"
 #include <cstdint>
 
-void debug() {
-
-}
-
 template <int nr_tlb_entry = 8>
 class mips_mmu {
 public:
