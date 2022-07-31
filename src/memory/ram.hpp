@@ -27,6 +27,15 @@ public:
         std::ifstream file(init_file,std::ios::in | std::ios::binary);
         file.read((char*)mem,file_size);
     }
+    void load_binary(unsigned long start_addr, const char *init_file) {
+        unsigned long file_size = std::filesystem::file_size(init_file);
+        if (file_size > mem_size) {
+            std::cerr << "ram size is not big enough for init file." << std::endl;
+            file_size = mem_size;
+        }
+        std::ifstream file(init_file,std::ios::in | std::ios::binary);
+        file.read((char*)mem+start_addr,file_size);
+    }
     bool do_read (unsigned long start_addr, unsigned long size, unsigned char* buffer) {
         if (start_addr + size <= mem_size) {
             memcpy(buffer,&mem[start_addr],size);
