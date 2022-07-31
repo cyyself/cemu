@@ -57,6 +57,7 @@ enum mips32_opcode {
     OPCODE_SWR      = 0b101110,
     OPCODE_CACHE    = 0b101111,
     OPCODE_LL       = 0b110000,
+    OPCODE_PREFETCH = 0b110011,
     OPCODE_SC       = 0b111000
 };
 

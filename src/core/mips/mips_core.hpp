@@ -866,6 +866,10 @@ private:
                 // printf("Cache instruction executed. addr = %x, op = %d\n",instr.i_type.rs + instr.i_type.imm, instr.i_type.rt);
                 break;
             }
+            case OPCODE_PREFETCH: {
+                // prefetch as nop
+                break;
+            }
             /*
             case OPCODE_LL: {
                 // LL as LW
