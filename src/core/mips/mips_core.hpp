@@ -344,6 +344,30 @@ private:
                         }
                         break;
                     }
+                    case FUNCT_TEQ: {
+                        if (GPR[instr.r_type.rs] == GPR[instr.r_type.rt]) cp0.raise_trap(EXC_TR);
+                        break;
+                    }
+                    case FUNCT_TGE: {
+                        if (GPR[instr.r_type.rs] >= GPR[instr.r_type.rt]) cp0.raise_trap(EXC_TR);
+                        break;
+                    }
+                    case FUNCT_TGEU: {
+                        if ((uint32_t)GPR[instr.r_type.rs] >= (uint32_t)GPR[instr.r_type.rt]) cp0.raise_trap(EXC_TR);
+                        break;
+                    }
+                    case FUNCT_TLT: {
+                        if (GPR[instr.r_type.rs] < GPR[instr.r_type.rt]) cp0.raise_trap(EXC_TR);
+                        break;
+                    }
+                    case FUNCT_TLTU: {
+                        if ((uint32_t)GPR[instr.r_type.rs] < (uint32_t)GPR[instr.r_type.rt]) cp0.raise_trap(EXC_TR);
+                        break;
+                    }
+                    case FUNCT_TNE: {
+                        if (GPR[instr.r_type.rs] != GPR[instr.r_type.rt]) cp0.raise_trap(EXC_TR);
+                        break;
+                    }
                     default:
                         ri = true;
                 }
@@ -583,6 +607,30 @@ private:
                             else forward_branch_taken ++;
                         }
                         set_GPR(31, pc + 8);
+                        break;
+                    }
+                    case RT_TEQI: {
+                        if (GPR[instr.i_type.rs] == instr.i_type.imm) cp0.raise_trap(EXC_TR);
+                        break;
+                    }
+                    case RT_TGEI: {
+                        if (GPR[instr.i_type.rs] >= instr.i_type.imm) cp0.raise_trap(EXC_TR);
+                        break;
+                    }
+                    case RT_TGEIU: {
+                        if ((uint32_t)GPR[instr.i_type.rs] >= (uint32_t)((int32_t)instr.i_type.imm) ) cp0.raise_trap(EXC_TR);
+                        break;
+                    }
+                    case RT_TLTI: {
+                        if (GPR[instr.i_type.rs] < instr.i_type.imm) cp0.raise_trap(EXC_TR);
+                        break;
+                    }
+                    case RT_TLTIU: {
+                        if ((uint32_t)GPR[instr.i_type.rs] < (uint32_t)((int32_t)instr.i_type.imm)) cp0.raise_trap(EXC_TR);
+                        break;
+                    }
+                    case RT_TNEI: {
+                        if (GPR[instr.i_type.rs] != instr.i_type.imm) cp0.raise_trap(EXC_TR);
                         break;
                     }
                     default:
