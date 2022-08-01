@@ -284,6 +284,8 @@ public:
         if (exc == EXC_TLBL || exc == EXC_TLBS || exc == EXC_MOD) {
             cp0_context *context_reg = (cp0_context*)&context;
             context_reg->badvpn2 = badva_val >> 13;
+            cp0_entryhi *entryhi_reg = (cp0_entryhi*)&entryhi;
+            entryhi_reg->VPN2 = badva_val >> 13;
         }
     }
     void eret() {
