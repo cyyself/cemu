@@ -16,13 +16,18 @@ public:
     }
     // Only mask high 3 bit to translate from va to pa.
     // TODO: impl TLB and virtual address space segments
-    mips32_exccode va_if(uint32_t addr, uint8_t *buffer, mips32_ksu mode, uint8_t asid) {
+    mips32_exccode va_if(uint32_t addr, uint8_t *buffer, mips32_ksu mode, uint8_t asid, bool &tlb_invalid) {
+        tlb_invalid = false;
         if ((mode == USER_MODE && addr >= 0x80000000u) || addr % 4 != 0) return EXC_ADEL;
         else {
             bool dirty;
+            bool to_refill;
             uint32_t pa = 0;
-            bool trans_res = translation(addr, asid, dirty, pa);
-            if (!trans_res) return EXC_TLBL;
+            bool trans_res = translation(addr, asid, dirty, to_refill, pa);
+            if (!trans_res) {
+                if (!to_refill) tlb_invalid = true;
+                return EXC_TLBL;
+            }
             else {
                 if (!bus.do_read(pa, 4, buffer)) return EXC_IBE;
                 else return EXC_OK;
@@ -30,26 +35,36 @@ public:
         }
     }
     // size should be 1, 2, 4
-    mips32_exccode va_read(uint32_t addr, uint32_t size, uint8_t *buffer, mips32_ksu mode, uint8_t asid) {
+    mips32_exccode va_read(uint32_t addr, uint32_t size, uint8_t *buffer, mips32_ksu mode, uint8_t asid, bool &tlb_invalid) {
+        tlb_invalid = false;
         if ((mode == USER_MODE && addr >= 0x80000000u) || addr % size != 0) return EXC_ADEL;
         else {
             bool dirty;
+            bool to_refill;
             uint32_t pa = 0;
-            bool trans_res = translation(addr, asid, dirty, pa);
-            if (!trans_res) return EXC_TLBL;
+            bool trans_res = translation(addr, asid, dirty, to_refill, pa);
+            if (!trans_res) {
+                if (!to_refill) tlb_invalid = true;
+                return EXC_TLBL;
+            }
             else {
                 if (!bus.do_read(pa, size, buffer)) return EXC_DBE;
                 else return EXC_OK;
             }
         }
     }
-    mips32_exccode va_write(uint32_t addr, uint32_t size, const uint8_t *buffer, mips32_ksu mode, uint8_t asid) {
+    mips32_exccode va_write(uint32_t addr, uint32_t size, const uint8_t *buffer, mips32_ksu mode, uint8_t asid, bool &tlb_invalid) {
+        tlb_invalid = false;
         if ((mode == USER_MODE && addr >= 0x80000000u) || addr % size != 0) return EXC_ADES;
         else {
             bool dirty;
+            bool to_refill;
             uint32_t pa = 0;
-            bool trans_res = translation(addr, asid, dirty, pa);
-            if (!trans_res) return EXC_TLBS;
+            bool trans_res = translation(addr, asid, dirty, to_refill, pa);
+            if (!trans_res) {
+                if (!to_refill) tlb_invalid = true;
+                return EXC_TLBS;
+            }
             else {
                 if (!dirty) return EXC_MOD;
                 if (!bus.do_write(pa, size, buffer)) return EXC_DBE;
@@ -73,7 +88,8 @@ public:
     }
 private:
     // don't care CCA
-    bool translation(uint32_t va, uint8_t asid, bool &dirty, uint32_t &pa) {
+    bool translation(uint32_t va, uint8_t asid, bool &dirty, bool &to_refill, uint32_t &pa) {
+        to_refill = false;
         if (va >= 0x80000000u && va <= 0xbfffffffu) {
             dirty = true;
             pa = va & 0x1fffffffu;
@@ -81,7 +97,10 @@ private:
         }
         else {
             mips_tlb *tlbe = tlb_match(va, asid);
-            if (!tlbe) return false;
+            if (!tlbe) {
+                to_refill = true;
+                return false;
+            }
             if (((va >> 12) & 1) && tlbe->V1) {
                 dirty = tlbe->D1;
                 pa = (va & 0xfff) | (tlbe->PFN1 << 12);

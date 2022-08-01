@@ -263,17 +263,17 @@ public:
     uint32_t get_trap_pc() {
         return trap_pc;
     }
-    void raise_trap(mips32_exccode exc, uint32_t badva_val = 0) {
-        // if (exc != EXC_INT) printf("\nTRAP %d\n",exc);
-        cur_need_trap = true;
+    void raise_trap(mips32_exccode exc, uint32_t badva_val = 0, bool tlb_invalid = false) {
         cp0_status *status_reg = (cp0_status*)&status;
+        // if (exc != EXC_INT) printf("\nTRAP %d %08x %08x exl=%d erl=%d\n",exc,badva_val,pc,status_reg->EXL,status_reg->ERL);
+        cur_need_trap = true;
         cp0_cause *cause_reg = (cp0_cause*)&cause;
         // Note: If multicore implemented, ebase should clear lower 10bits (which is CPUNum) before used.
         uint32_t trap_base = (status_reg->BEV ? 0xbfc00200u : ebase);
         if (!status_reg->EXL) {
             epc = bd ? pc - 4 : pc;
             cause_reg->BD = bd;
-            trap_pc = trap_base + ((exc == EXC_TLBL || exc == EXC_TLBS) ? 0x000 : (exc == EXC_INT && cause_reg->IV && !status_reg->BEV) ? 0x200 : 0x180);
+            trap_pc = trap_base + (( (exc == EXC_TLBL || exc == EXC_TLBS) && !tlb_invalid) ? 0x000 : (exc == EXC_INT && cause_reg->IV && !status_reg->BEV) ? 0x200 : 0x180);
         }
         else trap_pc = trap_base + 0x180u;
         cause_reg->exccode = exc;
@@ -365,6 +365,10 @@ public:
     uint8_t get_asid() {
         cp0_entryhi *entryhi_reg = (cp0_entryhi*)&entryhi;
         return entryhi_reg->ASID;
+    }
+    bool c0_useable() {
+        cp0_status *status_reg = (cp0_status*)&status;
+        return (get_ksu() == KERNEL_MODE) || (status_reg->CU & 1);
     }
 private:
     void check_and_raise_int() {
