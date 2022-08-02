@@ -835,21 +835,21 @@ private:
                 break;
             }
             case OPCODE_COP0: {
-                switch (instr.r_type.rs) {
-                    case RS_MFC0: {
-                        // MFC0
-                        if (instr.r_type.rd == RD_COUNT && (instr.r_type.funct & 0b111) == 0) debug_wb_is_timer = true; // for difftest
-                        set_GPR(instr.r_type.rt, cp0.mfc0(instr.r_type.rd, instr.r_type.funct&0b111));
-                        break;
-                    }
-                    case RS_MTC0: {
-                        // MTC0
-                        cp0.mtc0(instr.r_type.rd, instr.r_type.funct & 0b111, GPR[instr.r_type.rt]);
-                        break;
-                    }
-                    case RS_CO: {
-                        if (!cp0.c0_useable()) cp0.raise_trap(EXC_CPU);
-                        else {
+                if (!cp0.c0_useable()) cp0.raise_trap(EXC_CPU);
+                else {
+                    switch (instr.r_type.rs) {
+                        case RS_MFC0: {
+                            // MFC0
+                            if (instr.r_type.rd == RD_COUNT && (instr.r_type.funct & 0b111) == 0) debug_wb_is_timer = true; // for difftest
+                            set_GPR(instr.r_type.rt, cp0.mfc0(instr.r_type.rd, instr.r_type.funct&0b111));
+                            break;
+                        }
+                        case RS_MTC0: {
+                            // MTC0
+                            cp0.mtc0(instr.r_type.rd, instr.r_type.funct & 0b111, GPR[instr.r_type.rt]);
+                            break;
+                        }
+                        case RS_CO: {
                             switch (instr.r_type.funct) {
                                 case FUNCT_ERET:
                                     cp0.eret();
@@ -872,11 +872,11 @@ private:
                                     assert(false);
                                     break;
                             }
+                            break;
                         }
-                        break;
+                        default:
+                            ri = true;
                     }
-                    default:
-                        ri = true;
                 }
                 break;
             }
