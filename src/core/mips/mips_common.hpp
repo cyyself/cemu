@@ -296,8 +296,8 @@ struct mips_tlb {
     unsigned int G : 1;
     unsigned int V0 : 1;
     unsigned int V1 : 1;
-    unsigned int D0 : 2;
-    unsigned int D1 : 2;
+    unsigned int D0 : 1;
+    unsigned int D1 : 1;
     unsigned int C0 : 3;
     unsigned int C1 : 3;
     unsigned int PFN0 : 20;
