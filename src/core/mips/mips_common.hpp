@@ -247,7 +247,7 @@ struct cp0_config1 {
     unsigned int IL : 3; // Icache line size
     unsigned int IS : 3; // Icache sets per way
     unsigned int MS : 6; // MMU Size - 1
-    unsigned int M; // Config2 is present: 0
+    unsigned int M  : 1; // Config2 is present: 0
 };
 
 struct cp0_entrylo {
