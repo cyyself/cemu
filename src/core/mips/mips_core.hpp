@@ -8,6 +8,7 @@
 #include <cstring>
 #include <cassert>
 #include <queue>
+#include <set>
 
 class mips_core {
 public:
@@ -62,6 +63,7 @@ public:
     uint32_t debug_wb_wdata;
     bool     debug_wb_is_timer;
     std::queue <uint32_t> pc_trace;
+    std::set <uint32_t> cache_op;
     // TODO: trace with exceptions (add exception signal at commit stage is need)
 private:
     void exec(uint8_t ext_int) {
@@ -881,7 +883,13 @@ private:
                 break;
             }
             case OPCODE_CACHE: {
-                // printf("Cache instruction executed. addr = %x, op = %d\n",instr.i_type.rs + instr.i_type.imm, instr.i_type.rt);
+                // fprintf(stderr,"Cache at pc %x, addr = %x, op = %d\n",pc, GPR[instr.i_type.rs] + instr.i_type.imm, instr.i_type.rt);
+                /*
+                if (cache_op.find(instr.i_type.rt) == cache_op.end()) {
+                    cache_op.insert(instr.i_type.rt);
+                    printf("new Cache instruction executed. op = %d\n", instr.i_type.rt);
+                }
+                */
                 break;
             }
             case OPCODE_PREFETCH: {
