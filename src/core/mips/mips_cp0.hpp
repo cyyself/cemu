@@ -42,11 +42,11 @@ public:
         config1 = 0;
         cp0_config1 *config1_reg = (cp0_config1*)&config1;
         config1_reg->DA = 1; // Dcache associativity: 1: 2-way
-        config1_reg->DL = 4; // Dcache line size: 4: 32bytes
-        config1_reg->DS = 1; // Dcache sets per way: 1: 128
+        config1_reg->DL = 5; // Dcache line size: 5: 64bytes
+        config1_reg->DS = 0; // Dcache sets per way: 0: 64
         config1_reg->IA = 1; // Icache associativity: 1: 2-way
-        config1_reg->IL = 4; // Icache line size: 4: 32bytes
-        config1_reg->IS = 1; // Icache sets per way: 1: 128
+        config1_reg->IL = 5; // Icache line size: 4: 64bytes
+        config1_reg->IS = 0; // Icache sets per way: 0: 64
         config1_reg->MS = nr_tlb_entry - 1;
         taglo = 0;
         taghi = 0;
@@ -200,6 +200,7 @@ public:
                 status_reg->IE = status_new->IE;
                 status_reg->EXL = status_new->EXL;
                 status_reg->ERL = status_new->ERL;
+                assert(!status_reg->ERL);
                 status_reg->KSU = status_new->KSU == USER_MODE ? USER_MODE : KERNEL_MODE;
                 status_reg->IM = status_new->IM;
                 if (status_reg->BEV != status_new->BEV) {
