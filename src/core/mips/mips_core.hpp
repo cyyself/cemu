@@ -43,15 +43,25 @@ public:
         debug_wb_wnum = 0;
         debug_wb_wdata = 0;
         debug_wb_is_timer = 0;
+        j_cnt = 0;
         forward_branch = 0;
         forward_branch_taken = 0;
         backward_branch = 0;
         backward_branch_taken = 0;
         insret = 0;
+        difftest_mode = false;
     }
     uint32_t get_pc() {
         return pc;
     }
+    void set_difftest_mode(bool value) {
+        difftest_mode = value;
+    }
+    void import_diff_test_info(uint32_t cp0_count_val, uint32_t cp0_random_val, uint32_t cp0_cause_val, bool interrupt_on) {
+        cp0.difftest_preexec(cp0_count_val, cp0_random_val, cp0_cause_val, interrupt_on);
+    }
+    bool difftest_mode;
+    uint32_t j_cnt;
     uint32_t forward_branch;
     uint32_t forward_branch_taken;
     uint32_t backward_branch;
@@ -80,7 +90,7 @@ private:
         debug_wb_is_timer = false;
         mips_instr instr;
         mips32_exccode if_exc = EXC_OK;
-        cp0.pre_exec(ext_int);
+        if (!difftest_mode) cp0.pre_exec(ext_int);
         if (cp0.need_trap()) goto ctrl_trans_and_exception;
         pc_trace.push(pc);
         if (pc_trace.size() > 16) pc_trace.pop();
@@ -336,6 +346,7 @@ private:
                     case FUNCT_MOVN: {
                         if (instr.r_type.sa) ri = true;
                         else {
+                            // printf("MOVN executed!\n");
                             if (GPR[instr.r_type.rt]) set_GPR(instr.r_type.rd, GPR[instr.r_type.rs]);
                         }
                         break;
@@ -343,6 +354,7 @@ private:
                     case FUNCT_MOVZ: {
                         if (instr.r_type.sa) ri = true;
                         else {
+                            // printf("MOVZ executed!\n");
                             if (GPR[instr.r_type.rt] == 0) set_GPR(instr.r_type.rd, GPR[instr.r_type.rs]);
                         }
                         break;
@@ -424,6 +436,7 @@ private:
                     case FUNCT_CLO: {
                         if (instr.r_type.sa) ri = true;
                         else {
+                            // printf("CLO executed!\n");
                             int res = 32;
                             for (int i=31;i>=0;i--) if (((GPR[instr.r_type.rs] >> i) & 1) == 0) {
                                 res = 31 - i;
@@ -436,6 +449,7 @@ private:
                     case FUNCT_CLZ: {
                         if (instr.r_type.sa) ri = true;
                         else {
+                            // printf("CLZ executed!\n");
                             int res = 32;
                             for (int i=31;i>=0;i--) if ((GPR[instr.r_type.rs] >> i) & 1) {
                                 res = 31 - i;
@@ -647,6 +661,7 @@ private:
                 delay_npc = (pc & 0xf0000000) | (instr.j_type.imm << 2);
                 next_delay_slot = true;
                 next_control_trans = true;
+                j_cnt ++;
                 break;
             }
             case OPCODE_JAL: {
@@ -950,8 +965,8 @@ private:
     uint32_t delay_npc;
     int32_t GPR[32];
     uint32_t hi,lo;
-    mips_mmu<32> mmu;
-    mips_cp0<32> cp0;
+    mips_mmu<16> mmu;
+    mips_cp0<16> cp0;
 };
 
 

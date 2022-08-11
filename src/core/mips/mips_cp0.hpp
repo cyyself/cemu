@@ -15,6 +15,14 @@ public:
     mips_cp0(uint32_t &pc, bool &bd, mips_mmu<nr_tlb_entry> &mmu):pc(pc),bd(bd),mmu(mmu) {
         reset();
     }
+    void difftest_preexec(uint32_t cp0_count_val, uint32_t cp0_random_val, uint32_t cp0_cause_val, bool interrupt_on) {
+        count = cp0_count_val;
+        random = cp0_random_val;
+        cp0_cause *cause_reg = (cp0_cause*)&cause;
+        cp0_cause *cause_reg_diff = (cp0_cause*)&cp0_cause_val;
+        cause_reg->IP = cause_reg_diff->IP;
+        if (interrupt_on) check_and_raise_int();
+    }
     void reset() {
         index = 0;
         random = nr_tlb_entry - 1;
@@ -155,12 +163,18 @@ public:
                 index = (index & 0x80000000u) | (value & (nr_tlb_entry - 1));
                 assert(sel == 0);
                 break;
-            case RD_ENTRYLO0:
+            case RD_ENTRYLO0: {
                 entrylo0 = value & 0x03ffffffu; // mask higher 32bit PFN
+                cp0_entrylo *entrylo0_reg = (cp0_entrylo*)&entrylo0;
+                // printf("write entrylo0 PFN = %05x, V = %x\n",entrylo0_reg->PFN,entrylo0_reg->V);
                 break;
-            case RD_ENTRYLO1:
+            }
+            case RD_ENTRYLO1: {
                 entrylo1 = value & 0x03ffffffu; // mask higher 32bit PFN
+                cp0_entrylo *entrylo1_reg = (cp0_entrylo*)&entrylo1;
+                // printf("write entrylo1 PFN = %05x, V = %x\n",entrylo1_reg->PFN,entrylo1_reg->V);
                 break;
+            }
             case RD_CONTEXT: {
                 cp0_context *context_reg = (cp0_context*)&context;
                 cp0_context *context_new = (cp0_context*)&value;
@@ -287,6 +301,9 @@ public:
             context_reg->badvpn2 = badva_val >> 13;
             cp0_entryhi *entryhi_reg = (cp0_entryhi*)&entryhi;
             entryhi_reg->VPN2 = badva_val >> 13;
+            // if (exc == EXC_TLBL) printf("tlbl at pc %x, badva = %x\n",pc,badva_val);
+            // if (exc == EXC_TLBS) printf("tlbs at pc %x, badva = %x\n",pc,badva_val);
+            // if (exc == EXC_MOD) printf("tlbm at pc %x, badva = %x\n",pc,badva_val);
         }
     }
     void eret() {
@@ -338,6 +355,7 @@ public:
         tlbe.PFN1 = entrylo1_reg->PFN;
         tlbe.VPN2 = entryhi_reg->VPN2;
         tlbe.ASID = entryhi_reg->ASID;
+        // printf("TLBWI at pc %x, VPN2 = %05x, index = %x\n",pc, tlbe.VPN2, index);
         mmu.tlbw(tlbe, index);
     }
     void tlbwr() {
@@ -357,6 +375,7 @@ public:
         tlbe.VPN2 = entryhi_reg->VPN2;
         tlbe.ASID = entryhi_reg->ASID;
         // tlbe.print();
+        // printf("TLBWR at pc %x, VPN2 = %05x, index = %x\n",pc, tlbe.VPN2, index);
         mmu.tlbw(tlbe, random);
     }
     mips32_ksu get_ksu() {
