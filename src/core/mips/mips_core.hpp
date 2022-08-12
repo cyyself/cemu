@@ -10,6 +10,10 @@
 #include <queue>
 #include <set>
 
+void debug() {
+
+}
+
 class mips_core {
 public:
     mips_core(memory_bus &bus):mmu(bus),cp0(pc,in_delay_slot,mmu) {
@@ -59,7 +63,9 @@ public:
     }
     void import_diff_test_info(uint32_t cp0_count_val, uint32_t cp0_random_val, uint32_t cp0_cause_val, bool interrupt_on) {
         cp0.difftest_preexec(cp0_count_val, cp0_random_val, cp0_cause_val, interrupt_on);
+        int_allow = interrupt_on;
     }
+    bool int_allow;
     bool difftest_mode;
     uint32_t j_cnt;
     uint32_t forward_branch;
@@ -90,10 +96,11 @@ private:
         debug_wb_is_timer = false;
         mips_instr instr;
         mips32_exccode if_exc = EXC_OK;
-        if (!difftest_mode) cp0.pre_exec(ext_int);
-        if (cp0.need_trap()) goto ctrl_trans_and_exception;
         pc_trace.push(pc);
-        if (pc_trace.size() > 16) pc_trace.pop();
+        if (!difftest_mode) cp0.pre_exec(ext_int);
+        else if (int_allow) cp0.check_and_raise_int();
+        if (cp0.need_trap()) goto ctrl_trans_and_exception;
+        while (pc_trace.size() > 16) pc_trace.pop();
         if_exc = mmu.va_if(pc, (uint8_t*)&instr, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
         if (if_exc != EXC_OK) {
             cp0.raise_trap(if_exc, pc, tlb_invalid);
@@ -169,6 +176,7 @@ private:
                             uint64_t result = static_cast<int64_t>(GPR[instr.r_type.rs]) * static_cast<int64_t>(GPR[instr.r_type.rt]);
                             lo = result;
                             hi = result >> 32;
+                            // printf("lo = %x, pc = %x\n",lo,pc);
                         }
                         break;
                     }
@@ -178,6 +186,7 @@ private:
                         else {
                             uint64_t result = static_cast<uint32_t>(GPR[instr.r_type.rs])*1llu * static_cast<uint32_t>(GPR[instr.r_type.rt]);
                             lo = result;
+                            // printf("lo = %x, pc = %x\n",lo,pc);
                             hi = result >> 32;
                         }
                         break;
@@ -187,6 +196,7 @@ private:
                         if (instr.r_type.sa) ri = true;
                         else {
                             lo = static_cast<int64_t>(GPR[instr.r_type.rs]) / static_cast<int64_t>(GPR[instr.r_type.rt]);
+                            // printf("lo = %x, pc = %x\n",lo,pc);
                             hi = static_cast<int64_t>(GPR[instr.r_type.rs]) % static_cast<int64_t>(GPR[instr.r_type.rt]);
                         }
                         break;
@@ -196,6 +206,7 @@ private:
                         if (instr.r_type.sa) ri = true;
                         else {
                             lo = static_cast<uint32_t>(GPR[instr.r_type.rs]) / static_cast<uint32_t>(GPR[instr.r_type.rt]);
+                            // printf("lo = %x, pc = %x\n",lo,pc);
                             hi = static_cast<uint32_t>(GPR[instr.r_type.rs]) % static_cast<uint32_t>(GPR[instr.r_type.rt]);
                         }
                         break;
@@ -326,7 +337,9 @@ private:
                     case FUNCT_MTLO: {
                         // MTLO
                         if (instr.r_type.rt || instr.r_type.rd || instr.r_type.sa) ri = true;
-                        else lo = GPR[instr.r_type.rs];
+                        else {
+                            lo = GPR[instr.r_type.rs];
+                        }
                         break;
                     }
                     case FUNCT_BREAK: {
@@ -400,8 +413,9 @@ private:
                     case FUNCT_MADD: {
                         if (instr.r_type.sa || instr.r_type.rd) ri = true;
                         else {
-                            uint64_t result = (((hi*1llu) << 32) + lo*11lu) + static_cast<int64_t>(GPR[instr.r_type.rs]) * static_cast<int64_t>(GPR[instr.r_type.rt]);
+                            uint64_t result = (((hi*1llu) << 32) + lo*1llu) + static_cast<int64_t>(GPR[instr.r_type.rs]) * static_cast<int64_t>(GPR[instr.r_type.rt]);
                             lo = result;
+                            // printf("lo = %x, pc = %x\n",lo,pc);
                             hi = result >> 32;
                         }
                         break;
@@ -409,8 +423,9 @@ private:
                     case FUNCT_MADDU: {
                         if (instr.r_type.sa || instr.r_type.rd) ri = true;
                         else {
-                            uint64_t result = (((hi*1llu) << 32) + lo*11lu) + static_cast<uint32_t>(GPR[instr.r_type.rs])*1llu * static_cast<uint32_t>(GPR[instr.r_type.rt]);
+                            uint64_t result = (((hi*1llu) << 32) + lo*1llu) + static_cast<uint32_t>(GPR[instr.r_type.rs])*1llu * static_cast<uint32_t>(GPR[instr.r_type.rt]);
                             lo = result;
+                            // printf("lo = %x, pc = %x\n",lo,pc);
                             hi = result >> 32;
                         }
                         break;
@@ -418,8 +433,9 @@ private:
                     case FUNCT_MSUB: {
                         if (instr.r_type.sa || instr.r_type.rd) ri = true;
                         else {
-                            uint64_t result = (((hi*1llu) << 32) + lo*11lu) - static_cast<int64_t>(GPR[instr.r_type.rs]) * static_cast<int64_t>(GPR[instr.r_type.rt]);
+                            uint64_t result = (((hi*1llu) << 32) + lo*1llu) - static_cast<int64_t>(GPR[instr.r_type.rs]) * static_cast<int64_t>(GPR[instr.r_type.rt]);
                             lo = result;
+                            // printf("lo = %x, pc = %x\n",lo,pc);
                             hi = result >> 32;
                         }
                         break;
@@ -427,8 +443,9 @@ private:
                     case FUNCT_MSUBU: {
                         if (instr.r_type.sa || instr.r_type.rd) ri = true;
                         else {
-                            uint64_t result = (((hi*1llu) << 32) + lo*11lu) - static_cast<uint32_t>(GPR[instr.r_type.rs])*1llu * static_cast<uint32_t>(GPR[instr.r_type.rt]);
+                            uint64_t result = (((hi*1llu) << 32) + lo*1llu) - static_cast<uint32_t>(GPR[instr.r_type.rs])*1llu * static_cast<uint32_t>(GPR[instr.r_type.rt]);
                             lo = result;
+                            // printf("lo = %x, pc = %x\n",lo,pc);
                             hi = result >> 32;
                         }
                         break;

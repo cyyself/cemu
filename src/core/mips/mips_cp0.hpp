@@ -16,12 +16,12 @@ public:
         reset();
     }
     void difftest_preexec(uint32_t cp0_count_val, uint32_t cp0_random_val, uint32_t cp0_cause_val, bool interrupt_on) {
+        cur_need_trap = false;
         count = cp0_count_val;
         random = cp0_random_val;
         cp0_cause *cause_reg = (cp0_cause*)&cause;
         cp0_cause *cause_reg_diff = (cp0_cause*)&cp0_cause_val;
         cause_reg->IP = cause_reg_diff->IP;
-        if (interrupt_on) check_and_raise_int();
     }
     void reset() {
         index = 0;
@@ -390,7 +390,7 @@ public:
         cp0_status *status_reg = (cp0_status*)&status;
         return (get_ksu() == KERNEL_MODE) || (status_reg->CU & 1);
     }
-private:
+    bool cur_need_trap;
     void check_and_raise_int() {
         cp0_status *status_def = (cp0_status*)&status;
         cp0_cause *cause_def = (cp0_cause*)&cause;
@@ -398,12 +398,12 @@ private:
             raise_trap(EXC_INT);
         }
     }
+private:
     mips_mmu<nr_tlb_entry> &mmu;
 
     uint32_t &pc;
     bool &bd;
 
-    bool cur_need_trap;
     uint32_t trap_pc;
     
     uint32_t index; // Note: index[31] will be write by TLBP
