@@ -6,6 +6,7 @@
 #include <cassert>
 #include <unistd.h>
 #include <csignal>
+#include <fcntl.h>
 
 #include "mips_core.hpp"
 #include "nscscc_confreg.hpp"
@@ -81,9 +82,10 @@ void nscscc_perf() {
             confreg.tick();
             if (mips.get_pc() == 0xbfc00100u) break;
         }
-        printf("%x\n",confreg.get_num());
+        // printf("%x\n",confreg.get_num());
         // printf("%u,%u,%u,%u,%u\n",confreg.get_num(),mips.forward_branch,mips.forward_branch_taken,mips.backward_branch,mips.backward_branch_taken);
         // printf("%u,%u\n", mips.insret, mips.forward_branch_taken + mips.backward_branch_taken);
+        // printf("j_cnt: %d, insret = %d, insret/j_cnt = %d\n",mips.j_cnt, mips.insret, mips.insret / mips.j_cnt);
         // printf("forward : %u,  forward_taken: %u,  forward_taken_rate: %0.5lf.\n", mips.forward_branch, mips.forward_branch_taken, (double)mips.forward_branch_taken/mips.forward_branch);
         // printf("backward: %u, backward_taken: %u, backward_taken_rate: %0.5lf.\n", mips.backward_branch, mips.backward_branch_taken, (double)mips.backward_branch_taken/mips.backward_branch);
     }
@@ -146,7 +148,8 @@ void linux_run(int argc, const char* argv[]) {
 
     memory_bus cemu_mmio;
 
-    ram cemu_memory(128*1024*1024, "../linux/vmlinux.bin");
+    ram cemu_memory(128*1024*1024);
+    cemu_memory.load_binary(0x100000, "../linux/vmlinux.bin");
     assert(cemu_mmio.add_dev(0,128*1024*1024,&cemu_memory));
 
     // uart8250 at 0x1fe40000 (APB)
@@ -155,13 +158,15 @@ void linux_run(int argc, const char* argv[]) {
     assert(cemu_mmio.add_dev(0x1fe40000,0x10000,&uart));
 
     mips_core mips(cemu_mmio);
-    mips.jump(0x80000000u);
+    mips.jump(0x80100000u);
     uint32_t lastpc = 0;
     bool delay_cr = false;
     while (true) {
         mips.step(uart.irq() << 1);
         while (uart.exist_tx()) {
             char c = uart.getc();
+            if (c != '\r') std::cout << c;
+            /*
             if (c == '\r') delay_cr = true;
             else {
                 if (delay_cr && c != '\n') std::cout << "\r" << c;
@@ -169,6 +174,7 @@ void linux_run(int argc, const char* argv[]) {
                 std::cout.flush();
                 delay_cr = false;
             }
+            */
             // uart_history[uart_history_idx] = c;
             // uart_history_idx = (uart_history_idx + 1) % 8;
         }
@@ -176,7 +182,16 @@ void linux_run(int argc, const char* argv[]) {
             uart.putc(3);
             send_ctrl_c = false;
         }
+        /*
+        if (mips.get_pc() == 0x80000048u) {
+            int fd = open("memory.dump", O_RDWR | O_CREAT, 0644);
+            pwrite(fd, cemu_memory.mem, 0x10000, 0);
+            close(fd);
+            break;
+        }
+        */
         if (mips.get_pc() == lastpc) {
+            printf("instruction retired=%d\n", mips.insret);
             while (!mips.pc_trace.empty()) {
                 printf("%x\n",mips.pc_trace.front());
                 mips.pc_trace.pop();
