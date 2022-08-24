@@ -52,7 +52,7 @@ public:
     void tick() {
         timer ++;
     }
-    bool do_read(unsigned long start_addr, unsigned long size, unsigned char* buffer) {
+    bool do_read(uint64_t start_addr, uint64_t size, unsigned char* buffer) {
         assert(size == 4);
         switch (start_addr) {
             case CR0_ADDR:
@@ -127,7 +127,7 @@ public:
         }
         return true;
     }
-    bool do_write(unsigned long start_addr, unsigned long size, const unsigned char* buffer) {
+    bool do_write(uint64_t start_addr, uint64_t size, const unsigned char* buffer) {
         assert(size == 4 || (size == 1 && start_addr == VIRTUAL_UART_ADDR));
         switch (start_addr) {
             case CR0_ADDR:

@@ -2,6 +2,8 @@
 
 A simple full system emulator.
 
+Easy to be used for difftest with [soc-simulator](https://github.com/cyyself/soc-simulator).
+
 ## ISAs Support
 
 - RISC-V
@@ -12,10 +14,25 @@ A simple full system emulator.
   - RISC-V PLIC
   - Capable of booting S-Mode SMP Linux with OpenSBI
 
+- MIPS32
+  - Full MIPS Release 1 support without Branch-Likely instruction
+  - TLB Support
+  - Capable of booting Linux and ucore-thumips.
+
+## TODO List
+
+- LoongArch32 support
+- Cache simulation support (Currently at out-of-tree `cache` branch)
+- RISC-V C Extension
+
 ## Devices Support
 
 - Xilinx UARTLite
 - Serial 8250 (16550 Compatible)
+
+## How to run?
+
+See `src/main.cpp` and `example_main` folder to replace the main.
 
 ## Help
 

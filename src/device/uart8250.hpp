@@ -31,7 +31,7 @@ public:
         IIR = 0;
         MCR = 0;
     }
-    bool do_read(unsigned long start_addr, unsigned long size, unsigned char* buffer) {
+    bool do_read(uint64_t start_addr, uint64_t size, unsigned char* buffer) {
         std::unique_lock<std::mutex> lock(rx_lock);
         assert(size == 1);
         switch (start_addr) {
@@ -94,7 +94,7 @@ public:
         }
         return true;
     }
-    bool do_write(unsigned long start_addr, unsigned long size, const unsigned char* buffer) {
+    bool do_write(uint64_t start_addr, uint64_t size, const unsigned char* buffer) {
         std::unique_lock<std::mutex> lock_tx(tx_lock);
         std::unique_lock<std::mutex> lock_rx(rx_lock);
         assert(size == 1);
@@ -192,8 +192,8 @@ private:
         }
         IIR |= no_int;
     }
-    const static unsigned long UART_RX = 0;
-    const static unsigned long UART_TX = 0;
+    const static uint64_t UART_RX = 0;
+    const static uint64_t UART_TX = 0;
     std::queue <char> rx;
     std::queue <char> tx;
     std::mutex rx_lock;

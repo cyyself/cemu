@@ -10,16 +10,16 @@
 
 class ram: public mmio_dev {
 public:
-    ram(unsigned long size_bytes) {
+    ram(uint64_t size_bytes) {
         mem = new unsigned char[size_bytes];
         mem_size = size_bytes;
     }
-    ram(unsigned long size_bytes, const unsigned char *init_binary, unsigned long init_binary_len):ram(size_bytes) {
+    ram(uint64_t size_bytes, const unsigned char *init_binary, uint64_t init_binary_len):ram(size_bytes) {
         assert(init_binary_len <= size_bytes);
         memcpy(mem,init_binary,init_binary_len);
     }
-    ram(unsigned long size_bytes, const char *init_file):ram(size_bytes) {
-        unsigned long file_size = std::filesystem::file_size(init_file);
+    ram(uint64_t size_bytes, const char *init_file):ram(size_bytes) {
+        uint64_t file_size = std::filesystem::file_size(init_file);
         if (file_size > mem_size) {
             std::cerr << "ram size is not big enough for init file." << std::endl;
             file_size = size_bytes;
@@ -27,7 +27,16 @@ public:
         std::ifstream file(init_file,std::ios::in | std::ios::binary);
         file.read((char*)mem,file_size);
     }
-    bool do_read (unsigned long start_addr, unsigned long size, unsigned char* buffer) {
+    void load_binary(uint64_t start_addr, const char *init_file) {
+        uint64_t file_size = std::filesystem::file_size(init_file);
+        if (file_size > mem_size) {
+            std::cerr << "ram size is not big enough for init file." << std::endl;
+            file_size = mem_size;
+        }
+        std::ifstream file(init_file,std::ios::in | std::ios::binary);
+        file.read((char*)mem+start_addr,file_size);
+    }
+    bool do_read (uint64_t start_addr, uint64_t size, unsigned char* buffer) {
         if (start_addr + size <= mem_size) {
             memcpy(buffer,&mem[start_addr],size);
             return true;
@@ -42,7 +51,7 @@ public:
         }
         else return false;
     }
-    bool do_write(unsigned long start_addr, unsigned long size, const unsigned char* buffer) {
+    bool do_write(uint64_t start_addr, uint64_t size, const unsigned char* buffer) {
         if (start_addr + size <= mem_size) {
             memcpy(&mem[start_addr],buffer,size);
             return true;
@@ -63,7 +72,7 @@ public:
 private:
     bool allow_warp = false;
     unsigned char *mem;
-    unsigned long mem_size;
+    uint64_t mem_size;
 };
 
 #endif

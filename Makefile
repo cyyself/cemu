@@ -11,8 +11,11 @@ CXXFLAGS = -lpthread -std=c++17 -O3 -Wall
 
 .PHONY: clean
 
-cemu: $(OBJS)
+cemu: obj $(OBJS)
 	$(CXX) $(OBJS) $(CXXFLAGS) -o $@
+
+obj:
+	mkdir -p $(OBJ_DIR)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) $(addprefix -I,${DIRS}) -c $< -o $@
