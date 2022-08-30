@@ -2,3 +2,4 @@ cemu
 obj
 tests
 .vscode
+.idea
