@@ -109,6 +109,9 @@ public:
         if (cur_plv > plv) {
             return std::make_pair(PPI, 0);
         }
+        if (!dirty) {
+            return std::make_pair(PME, 0);
+        }
         assert(bus.do_write(pa, size, buffer));
         return std::make_pair(OK, 0);
     }
