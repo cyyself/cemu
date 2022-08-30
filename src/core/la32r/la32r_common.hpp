@@ -1,6 +1,7 @@
 #ifndef LA32R_COMMON
 #define LA32R_COMMON
 
+#include <cstdio>
 #include <utility>
 
 #define TLB_INDEX_WIDTH 5
@@ -149,6 +150,7 @@ enum la32r_ecode : unsigned int {
     INT = 0x0,
     PIL = 0x1,
     PIS = 0x2,
+    PIF = 0x3,
     PME = 0x4,
     PPI = 0x7,
     ADE = 0x8,
@@ -159,7 +161,8 @@ enum la32r_ecode : unsigned int {
     IPE = 0xE,
     FPD = 0xF,
     FPE = 0x12,
-    TLBR = 0x3F
+    TLBR = 0x3F,
+    OK = 0x33,
 };
 
 #define ADEF_SUBCODE 0
@@ -309,5 +312,50 @@ struct csr_ticlr {
     unsigned int clr: 1;
     unsigned int blank0: 31;
 };
+
+struct la32r_tlb {
+    unsigned int e: 1;
+    unsigned int asid: 10;
+    unsigned int g: 1;
+    unsigned int ps: 6;
+    unsigned int vppn: 19;
+    unsigned int v0: 1;
+    unsigned int d0: 1;
+    la32r_mat mat0: 2;
+    la32r_plv plv0: 2;
+    unsigned int ppn0: 20;
+    unsigned int v1: 1;
+    unsigned int d1: 1;
+    la32r_mat mat1: 2;
+    la32r_plv plv1: 2;
+    unsigned int ppn1: 20;
+
+    void print() {
+        printf("-----TLB Entry BEGIN-----\n");
+        printf("e: %d\n", e);
+        printf("asid: %d\n", asid);
+        printf("g: %d\n", g);
+        printf("ps: %d\n", ps);
+        printf("vppn: %x\n", vppn << 13);
+        printf("v0:   %d       v1:   %d\n", v0, v1);
+        printf("d0:   %d       d1:   %d\n", d0, d1);
+        printf("mat0: %d       mat1: %d\n", mat0, mat1);
+        printf("plv0: %d       plv1: %d\n", plv0, plv1);
+        printf("ppn0: %08x ppn1: %08x\n", ppn0, ppn1);
+        printf("-----TLB Entry  END -----\n")
+    }
+};
+
+struct la32r_dmw {
+    unsigned int plv0: 1;
+    unsigned int plv1: 1;
+    unsigned int plv2: 1;
+    unsigned int plv3: 1;
+    la32r_mat mat: 2;
+    unsigned int pseg: 3;
+    unsigned int vseg: 3;
+};
+
+typedef std::pair<la32r_ecode, unsigned int> la32r_exccode;
 
 #endif // LA32R_COMMON
