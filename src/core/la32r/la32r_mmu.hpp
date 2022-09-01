@@ -135,6 +135,14 @@ public:
         tlb[index] = tlbe;
     }
 
+    void tlb_inv(bool (*pred)(const la32r_tlb &)) {
+        for (int i = 0; i < nr_tlb_entry; i++) {
+            if (pred(tlb[i])) {
+                tlb[i] = 0;
+            }
+        }
+    }
+
     void dmw_fill(la32r_dmw dmwe, uint8_t index) {
         dmw[index] = dmwe;
     }

@@ -141,6 +141,39 @@ enum la32r_opcode {
     BGEU = 0b11011,
 };
 
+enum la32r_csr_idx {
+    CRMD = 0x0,
+    PRMD = 0x1,
+    EUEN = 0x2,
+    ECFG = 0x4,
+    ESTAT = 0x5,
+    ERA = 0x6,
+    BADV = 0x7,
+    EENTRY = 0xc,
+    TLBIDX = 0x10,
+    TLBEHI = 0x11,
+    TLBELO0 = 0x12,
+    TLBELO1 = 0x13,
+    ASID = 0x18,
+    PGDL = 0x19,
+    PGDH = 0x1A,
+    PGD = 0x1B,
+    CPUID = 0x20,
+    SAVE0 = 0x30,
+    SAVE1 = 0x31,
+    SAVE2 = 0x32,
+    SAVE3 = 0x33,
+    TID = 0x40,
+    TCFG = 0x41,
+    TVAL = 0x42,
+    TICLR = 0x44,
+    LLBCTL = 0x60,
+    TLBRENTRY = 0x88,
+    CTAG = 0x98,
+    DMW0 = 0x180,
+    DMW1 = 0x181,
+};
+
 enum la32r_csr_op {
     RD = 0b00000,
     WR = 0b00001,
@@ -255,7 +288,7 @@ struct csr_tlbehi {
     unsigned int vppn: 19;
 };
 
-struct csr_tlblo {
+struct csr_tlbelo {
     unsigned int v: 1;
     unsigned int d: 1;
     la32r_plv plv: 2;
