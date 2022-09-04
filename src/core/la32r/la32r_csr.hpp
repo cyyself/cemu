@@ -51,227 +51,227 @@ public:
 
     uint32_t read(uint32_t index) {
         switch (index) {
-            case CRMD:
-                return crmd;
-            case PRMD:
-                return prmd;
-            case EUEN:
-                return euen;
-            case ECFG:
-                return ecfg;
-            case ESTAT:
-                return estat;
-            case ERA:
-                return era;
-            case BADV:
-                return badv;
-            case EENTRY:
-                return eentry;
-            case TLBIDX:
-                return tlbidx;
-            case TLBEHI:
-                return tlbehi;
-            case TLBELO0:
-                return tlbelo0;
-            case TLBELO1:
-                return tlbelo1;
-            case ASID:
-                return asid;
-            case PGDL:
-                return pgdl;
-            case PGDH:
-                return pgdh;
-            case PGD:
-                return ((badv >> 31) == 0) ? pgdl : pgdh;
-            case CPUID:
-                return cpuid;
-            case SAVE0:
-                return save0;
-            case SAVE1:
-                return save1;
-            case SAVE2:
-                return save2;
-            case SAVE3:
-                return save3;
-            case TID:
-                return tid;
-            case TCFG:
-                return tcfg;
-            case TVAL:
-                return tval;
-            case TICLR:
-                return 0;
-            case LLBCTL:
-                return llbctl;
-            case TLBRENTRY:
-                return tlbrentry;
-            case CTAG:
-                return ctag;
-            case DMW0:
-                return dmw0;
-            case DMW1:
-                return dmw1;
-            default:
-                return 0;
+        case CRMD:
+            return crmd;
+        case PRMD:
+            return prmd;
+        case EUEN:
+            return euen;
+        case ECFG:
+            return ecfg;
+        case ESTAT:
+            return estat;
+        case ERA:
+            return era;
+        case BADV:
+            return badv;
+        case EENTRY:
+            return eentry;
+        case TLBIDX:
+            return tlbidx;
+        case TLBEHI:
+            return tlbehi;
+        case TLBELO0:
+            return tlbelo0;
+        case TLBELO1:
+            return tlbelo1;
+        case ASID:
+            return asid;
+        case PGDL:
+            return pgdl;
+        case PGDH:
+            return pgdh;
+        case PGD:
+            return ((badv >> 31) == 0) ? pgdl : pgdh;
+        case CPUID:
+            return cpuid;
+        case SAVE0:
+            return save0;
+        case SAVE1:
+            return save1;
+        case SAVE2:
+            return save2;
+        case SAVE3:
+            return save3;
+        case TID:
+            return tid;
+        case TCFG:
+            return tcfg;
+        case TVAL:
+            return tval;
+        case TICLR:
+            return 0;
+        case LLBCTL:
+            return llbctl;
+        case TLBRENTRY:
+            return tlbrentry;
+        case CTAG:
+            return ctag;
+        case DMW0:
+            return dmw0;
+        case DMW1:
+            return dmw1;
+        default:
+            return 0;
         }
     }
 
     void write(uint32_t index, uint32_t value) {
         switch (index) {
-            case CRMD: {
-                auto old_val = (csr_crmd *) &crmd;
-                auto new_val = (csr_crmd *) &value;
-                old_val->plv = new_val->plv;
-                old_val->ie = new_val->ie;
-                old_val->da = new_val->da;
-                old_val->pg = new_val->pg;
-                old_val->datf = new_val->datf;
-                old_val->datm = new_val->datm;
-                break;
+        case CRMD: {
+            auto old_val = (csr_crmd *) &crmd;
+            auto new_val = (csr_crmd *) &value;
+            old_val->plv = new_val->plv;
+            old_val->ie = new_val->ie;
+            old_val->da = new_val->da;
+            old_val->pg = new_val->pg;
+            old_val->datf = new_val->datf;
+            old_val->datm = new_val->datm;
+            break;
+        }
+        case PRMD: {
+            auto old_val = (csr_prmd *) &prmd;
+            auto new_val = (csr_prmd *) &value;
+            old_val->pplv = new_val->pplv;
+            old_val->pie = new_val->pie;
+            break;
+        }
+        case EUEN: {
+            auto old_val = (csr_euen *) &euen;
+            auto new_val = (csr_euen *) &value;
+            old_val->fpe = new_val->fpe;
+            break;
+        }
+        case ECFG: {
+            auto old_val = (csr_ecfg *) &ecfg;
+            auto new_val = (csr_ecfg *) &value;
+            old_val->lie = new_val->lie;
+            break;
+        }
+        case ESTAT: {
+            auto old_val = (csr_estat *) &estat;
+            auto new_val = (csr_estat *) &value;
+            old_val->is = (old_val->is & ~0b11) | (new_val->is & 0b11); // only is[1:0] are writable
+            break;
+        }
+        case ERA: {
+            era = value;
+            break;
+        }
+        case BADV: {
+            badv = value;
+            break;
+        }
+        case EENTRY: {
+            auto old_val = (csr_eentry *) &eentry;
+            auto new_val = (csr_eentry *) &value;
+            old_val->va = new_val->va;
+            break;
+        }
+        case TLBIDX: {
+            auto old_val = (csr_tlbidx *) &tlbidx;
+            auto new_val = (csr_tlbidx *) &value;
+            old_val->index = new_val->index;
+            old_val->ps = new_val->ps;
+            old_val->ne = new_val->ne;
+            break;
+        }
+        case TLBEHI: {
+            auto old_val = (csr_tlbehi *) &tlbehi;
+            auto new_val = (csr_tlbehi *) &value;
+            old_val->vppn = new_val->vppn;
+            break;
+        }
+        case TLBELO0:
+        case TLBELO1: {
+            auto old_val = (csr_tlbelo *) ((index == TLBELO0) ? &tlbelo0 : &tlbelo1);
+            auto new_val = (csr_tlbelo *) &value;
+            old_val->v = new_val->v;
+            old_val->d = new_val->d;
+            old_val->plv = new_val->plv;
+            old_val->mat = new_val->mat;
+            old_val->g = new_val->g;
+            old_val->ppn = new_val->ppn;
+            break;
+        }
+        case ASID: {
+            auto old_val = (csr_asid *) &asid;
+            auto new_val = (csr_asid *) &value;
+            old_val->asid = new_val->asid;
+            break;
+        }
+        case PGDL:
+        case PGDH: {
+            auto old_val = (csr_pgd *) ((index == PGDL) ? pgdl : pgdh);
+            auto new_val = (csr_pgd *) &value;
+            old_val->base = new_val->base;
+            break;
+        }
+        case SAVE0:
+        case SAVE1:
+        case SAVE2:
+        case SAVE3: {
+            auto old_val = save_of(index);
+            assert(old_val != nullptr);
+            *old_val = value;
+            break;
+        }
+        case TID: {
+            tid = value;
+            break;
+        }
+        case TCFG: {
+            auto old_val = (csr_tcfg *) &tcfg;
+            auto new_val = (csr_tcfg *) &tcfg;
+            old_val->en = new_val->en;
+            old_val->periodic = new_val->periodic;
+            old_val->init_val = new_val->init_val;
+            tval = new_val->init_val << 2;
+            timer_en = new_val->en == 1;
+            break;
+        }
+        case TICLR: {
+            if (value & 0b1) {
+                ((csr_estat *) &estat)->is &= ~(1 << 11);
             }
-            case PRMD: {
-                auto old_val = (csr_prmd *) &prmd;
-                auto new_val = (csr_prmd *) &value;
-                old_val->pplv = new_val->pplv;
-                old_val->pie = new_val->pie;
-                break;
+            break;
+        }
+        case LLBCTL: {
+            auto old_val = (csr_llbctl *) &llbctl;
+            auto new_val = (csr_llbctl *) &value;
+            old_val->klo = new_val->klo;
+            if (new_val->wcllb) {
+                old_val->rollb = 0;
             }
-            case EUEN: {
-                auto old_val = (csr_euen *) &euen;
-                auto new_val = (csr_euen *) &value;
-                old_val->fpe = new_val->fpe;
-                break;
-            }
-            case ECFG: {
-                auto old_val = (csr_ecfg *) &ecfg;
-                auto new_val = (csr_ecfg *) &value;
-                old_val->lie = new_val->lie;
-                break;
-            }
-            case ESTAT: {
-                auto old_val = (csr_estat *) &estat;
-                auto new_val = (csr_estat *) &value;
-                old_val->is = (old_val->is & ~0b11) | (new_val->is & 0b11); // only is[1:0] are writable
-                break;
-            }
-            case ERA: {
-                era = value;
-                break;
-            }
-            case BADV: {
-                badv = value;
-                break;
-            }
-            case EENTRY: {
-                auto old_val = (csr_eentry *) &eentry;
-                auto new_val = (csr_eentry *) &value;
-                old_val->va = new_val->va;
-                break;
-            }
-            case TLBIDX: {
-                auto old_val = (csr_tlbidx *) &tlbidx;
-                auto new_val = (csr_tlbidx *) &value;
-                old_val->index = new_val->index;
-                old_val->ps = new_val->ps;
-                old_val->ne = new_val->ne;
-                break;
-            }
-            case TLBEHI: {
-                auto old_val = (csr_tlbehi *) &tlbehi;
-                auto new_val = (csr_tlbehi *) &value;
-                old_val->vppn = new_val->vppn;
-                break;
-            }
-            case TLBELO0:
-            case TLBELO1: {
-                auto old_val = (csr_tlbelo *) ((index == TLBELO0) ? &tlbelo0 : &tlbelo1);
-                auto new_val = (csr_tlbelo *) &value;
-                old_val->v = new_val->v;
-                old_val->d = new_val->d;
-                old_val->plv = new_val->plv;
-                old_val->mat = new_val->mat;
-                old_val->g = new_val->g;
-                old_val->ppn = new_val->ppn;
-                break;
-            }
-            case ASID: {
-                auto old_val = (csr_asid *) &asid;
-                auto new_val = (csr_asid *) &value;
-                old_val->asid = new_val->asid;
-                break;
-            }
-            case PGDL:
-            case PGDH: {
-                auto old_val = (csr_pgd *) ((index == PGDL) ? pgdl : pgdh);
-                auto new_val = (csr_pgd *) &value;
-                old_val->base = new_val->base;
-                break;
-            }
-            case SAVE0:
-            case SAVE1:
-            case SAVE2:
-            case SAVE3: {
-                auto old_val = save_of(index);
-                assert(old_val != nullptr);
-                *old_val = value;
-                break;
-            }
-            case TID: {
-                tid = value;
-                break;
-            }
-            case TCFG: {
-                auto old_val = (csr_tcfg *) &tcfg;
-                auto new_val = (csr_tcfg *) &tcfg;
-                old_val->en = new_val->en;
-                old_val->periodic = new_val->periodic;
-                old_val->init_val = new_val->init_val;
-                tval = new_val->init_val << 2;
-                timer_en = new_val->en == 1;
-                break;
-            }
-            case TICLR: {
-                if (value & 0b1) {
-                    ((csr_estat *) &estat)->is &= ~(1 << 11);
-                }
-                break;
-            }
-            case LLBCTL: {
-                auto old_val = (csr_llbctl *) &llbctl;
-                auto new_val = (csr_llbctl *) &value;
-                old_val->klo = new_val->klo;
-                if (new_val->wcllb) {
-                    old_val->rollb = 0;
-                }
-            }
-            case TLBRENTRY: {
-                auto old_val = (csr_tlbrentry *) &tlbrentry;
-                auto new_val = (csr_tlbrentry *) &value;
-                old_val->pa = new_val->pa;
-                break;
-            }
-            case DMW0:
-            case DMW1: {
-                auto old_val = (csr_dmw *) ((index == DMW0) ? &dmw0 : &dmw1);
-                auto new_val = (csr_dmw *) &value;
-                old_val->plv0 = new_val->plv0;
-                old_val->plv3 = new_val->plv3;
-                old_val->mat = new_val->mat;
-                old_val->pseg = new_val->pseg;
-                old_val->vseg = new_val->vseg;
-                mmu.dmw_fill(la32r_dmw{
-                        new_val->plv0,
-                        0,
-                        0,
-                        new_val->plv3,
-                        new_val->mat,
-                        new_val->pseg,
-                        new_val->vseg
-                }, (index == DMW0) ? 0 : 1);
-                break;
-            }
-            default:
-                break;
+        }
+        case TLBRENTRY: {
+            auto old_val = (csr_tlbrentry *) &tlbrentry;
+            auto new_val = (csr_tlbrentry *) &value;
+            old_val->pa = new_val->pa;
+            break;
+        }
+        case DMW0:
+        case DMW1: {
+            auto old_val = (csr_dmw *) ((index == DMW0) ? &dmw0 : &dmw1);
+            auto new_val = (csr_dmw *) &value;
+            old_val->plv0 = new_val->plv0;
+            old_val->plv3 = new_val->plv3;
+            old_val->mat = new_val->mat;
+            old_val->pseg = new_val->pseg;
+            old_val->vseg = new_val->vseg;
+            mmu.dmw_fill(la32r_dmw{
+                    new_val->plv0,
+                    0,
+                    0,
+                    new_val->plv3,
+                    new_val->mat,
+                    new_val->pseg,
+                    new_val->vseg
+            }, (index == DMW0) ? 0 : 1);
+            break;
+        }
+        default:
+            break;
         }
     }
 
@@ -294,7 +294,6 @@ public:
         }
         random = (random == 0) ? (nr_tlb_entry - 1) : (random - 1);
         estat_reg->is = (estat_reg->is & 0b1100000000011u) | ((ext_int & 0b11111111u) << 2);
-
     }
 
     bool need_trap() {
@@ -422,43 +421,43 @@ public:
         }, rand ? random : tlbidx_reg->index);
     }
 
-    void tlb_invalidate(uint8_t op, uint8_t inv_asid, uint32_t inv_va) {
+    void tlb_invalidate(uint8_t op, uint32_t inv_asid, uint32_t inv_va) {
         switch (op) {
-            case 0x0:
-            case 0x1:
-                mmu.tlb_inv([](const la32r_tlb &tlbe) {
-                    return true;
-                });
-                break;
-            case 0x2:
-                mmu.tlb_inv([](const la32r_tlb &tlbe) {
-                    return tlbe.g == 1;
-                });
-                break;
-            case 0x3:
-                mmu.tlb_inv([](const la32r_tlb &tlbe) {
-                    return tlbe.g == 0;
-                });
-                break;
-            case 0x4:
-                mmu.tlb_inv([=](const la32r_tlb &tlbe) {
-                    return tlbe.g == 0 && tlbe.asid == inv_asid;
-                });
-                break;
-            case 0x5:
-                mmu.tlb_inv([=](const la32r_tlb &tlbe) {
-                    return tlbe.g == 0 && tlbe.asid == inv_asid
-                           && (tlbe.vppn >> (tlbe.ps - 12) == inv_va >> (tlbe.ps + 1));
-                });
-                break;
-            case 0x6:
-                mmu.tlb_inv([=](const la32r_tlb &tlbe) {
-                    return (tlbe.g == 1 || tlbe.asid == inv_asid)
-                           && (tlbe.vppn >> (tlbe.ps - 12) == inv_va >> (tlbe.ps + 1));
-                });
-                break;
-            default:
-                assert(false);
+        case 0x0:
+        case 0x1:
+            mmu.tlb_inv([](const la32r_tlb &tlbe) {
+                return true;
+            });
+            break;
+        case 0x2:
+            mmu.tlb_inv([](const la32r_tlb &tlbe) {
+                return tlbe.g == 1;
+            });
+            break;
+        case 0x3:
+            mmu.tlb_inv([](const la32r_tlb &tlbe) {
+                return tlbe.g == 0;
+            });
+            break;
+        case 0x4:
+            mmu.tlb_inv([=](const la32r_tlb &tlbe) {
+                return tlbe.g == 0 && tlbe.asid == inv_asid;
+            });
+            break;
+        case 0x5:
+            mmu.tlb_inv([=](const la32r_tlb &tlbe) {
+                return tlbe.g == 0 && tlbe.asid == inv_asid
+                       && (tlbe.vppn >> (tlbe.ps - 12) == inv_va >> (tlbe.ps + 1));
+            });
+            break;
+        case 0x6:
+            mmu.tlb_inv([=](const la32r_tlb &tlbe) {
+                return (tlbe.g == 1 || tlbe.asid == inv_asid)
+                       && (tlbe.vppn >> (tlbe.ps - 12) == inv_va >> (tlbe.ps + 1));
+            });
+            break;
+        default:
+            assert(false);
         }
     }
 
@@ -466,8 +465,28 @@ public:
         return ((csr_crmd *) &crmd)->plv;
     }
 
-    uint8_t get_asid() {
+    bool get_crmd_da() {
+        return ((csr_crmd *) &crmd)->da == 1;
+    }
+
+    uint32_t get_asid() {
         return ((csr_asid *) &asid)->asid;
+    }
+
+    uint32_t get_timer_id() {
+        return ((csr_tid *) &tid)->tid;
+    }
+
+    uint8_t get_llbit() {
+        return ((csr_llbctl *) &llbctl)->rollb;
+    }
+
+    void set_llbit() {
+        ((csr_llbctl *) &llbctl)->rollb = 1;
+    }
+
+    void clr_llbit() {
+        ((csr_llbctl *) &llbctl)->rollb = 0;
     }
 
     void check_and_raise_int() {

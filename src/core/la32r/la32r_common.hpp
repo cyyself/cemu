@@ -61,8 +61,8 @@ union la32r_instr {
         unsigned int opcode: 6;
     } _1ri21;
     struct la32r_i26 {
-        int i26_hi: 10;
-        int i26_lo: 16;
+        unsigned int i26_hi: 10;
+        unsigned int i26_lo: 16;
         unsigned int opcode: 6;
     } _i26;
 };
