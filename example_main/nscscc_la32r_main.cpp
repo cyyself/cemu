@@ -36,7 +36,7 @@ void sigint_handler(int x) {
 int main(int argc, const char *argv[]) {
     memory_bus mmio;
 
-    ram func_mem(1024 * 1024, "./main.bin");
+    ram func_mem(1024 * 1024, "./func_lab19.bin");
     ram data_mem0(0x1000000);
     ram data_mem1(0x1000000);
     ram data_mem2(0x1000000);
