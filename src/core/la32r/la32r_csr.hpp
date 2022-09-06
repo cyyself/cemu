@@ -222,7 +222,7 @@ public:
         }
         case TCFG: {
             auto old_val = (csr_tcfg *) &tcfg;
-            auto new_val = (csr_tcfg *) &tcfg;
+            auto new_val = (csr_tcfg *) &value;
             old_val->en = new_val->en;
             old_val->periodic = new_val->periodic;
             old_val->init_val = new_val->init_val;
@@ -279,12 +279,13 @@ public:
         cur_need_trap = false;
         auto tcfg_reg = (csr_tcfg *) &tcfg;
         auto estat_reg = (csr_estat *) &estat;
+        auto ecfg_reg = (csr_ecfg *) &ecfg;
         if (timer_en) {
             if (tval == 0) {
                 ((csr_estat *) &estat)->is |= (1 << 11);
                 timer_en = tcfg_reg->periodic;
                 if (tcfg_reg->periodic) {
-                    tval = tcfg_val << 2;
+                    tval = tcfg_reg->init_val << 2;
                 } else {
                     tval = 0xffffffffu;
                 }
@@ -294,6 +295,9 @@ public:
         }
         random = (random == 0) ? (nr_tlb_entry - 1) : (random - 1);
         estat_reg->is = (estat_reg->is & 0b1100000000011u) | ((ext_int & 0b11111111u) << 2);
+        if ((estat_reg->is & ecfg_reg->lie) != 0 && ((csr_crmd *) &crmd)->ie != 0) {
+            raise_trap(std::make_pair(INT, 0));
+        }
     }
 
     bool need_trap() {
@@ -307,10 +311,11 @@ public:
     void raise_trap(la32r_exccode exc, uint32_t bad_va = 0) {
         auto estat_reg = (csr_estat *) &estat;
         auto crmd_reg = (csr_crmd *) &crmd;
-        auto prmd_reg = (csr_prmd *) prmd;
+        auto prmd_reg = (csr_prmd *) &prmd;
         auto tlbehi_reg = (csr_tlbehi *) &tlbehi;
         cur_need_trap = true;
         trap_pc = (exc.first == TLBR) ? tlbrentry : eentry;
+        era = pc;
         prmd_reg->pplv = crmd_reg->plv;
         prmd_reg->pie = crmd_reg->ie;
         estat_reg->ecode = exc.first;
@@ -334,9 +339,10 @@ public:
     void ertn() {
         auto estat_reg = (csr_estat *) &estat;
         auto crmd_reg = (csr_crmd *) &crmd;
-        auto prmd_reg = (csr_prmd *) prmd;
-        auto llbctl_reg = (csr_llbctl *) llbctl;
+        auto prmd_reg = (csr_prmd *) &prmd;
+        auto llbctl_reg = (csr_llbctl *) &llbctl;
         cur_need_trap = true;
+        trap_pc = era;
         crmd_reg->plv = prmd_reg->pplv;
         crmd_reg->ie = prmd_reg->pie;
         if (estat_reg->ecode == TLBR) {
@@ -457,7 +463,8 @@ public:
             });
             break;
         default:
-            assert(false);
+            raise_trap(std::make_pair(IPE, 0));
+            break;
         }
     }
 
@@ -465,8 +472,8 @@ public:
         return ((csr_crmd *) &crmd)->plv;
     }
 
-    bool get_crmd_da() {
-        return ((csr_crmd *) &crmd)->da == 1;
+    bool get_crmd_pg() {
+        return ((csr_crmd *) &crmd)->pg == 1;
     }
 
     uint32_t get_asid() {

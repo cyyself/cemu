@@ -375,7 +375,7 @@ struct la32r_tlb {
         printf("mat0: %d       mat1: %d\n", mat0, mat1);
         printf("plv0: %d       plv1: %d\n", plv0, plv1);
         printf("ppn0: %08x ppn1: %08x\n", ppn0, ppn1);
-        printf("-----TLB Entry  END -----\n")
+        printf("-----TLB Entry  END -----\n");
     }
 };
 

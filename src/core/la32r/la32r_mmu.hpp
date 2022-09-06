@@ -7,6 +7,16 @@
 #include <cassert>
 #include <cstdint>
 #include <cstring>
+#include <functional>
+
+#define bus_assert(expr) \
+    ({                   \
+        if (!expr) { \
+            fprintf(stderr, "UNEXPECTED ERROR at %s:%d addr = %08x, plv = %d, map = %d, asid = %d\n", \
+                    __func__, __LINE__, addr, cur_plv, map, asid); \
+            assert(false); \
+        } \
+    })
 
 template<int nr_tlb_entry = 32>
 class la32r_mmu {
@@ -25,12 +35,12 @@ public:
             return std::make_pair(ADE, ADEF_SUBCODE);
         }
         if (!map) {
-            assert(bus.do_read(addr, 4, buffer));
+            bus_assert(bus.do_read(addr, 4, buffer));
             return std::make_pair(OK, 0);
         }
         auto dmwe = dmw_match(addr, cur_plv);
         if (dmwe != nullptr) {
-            assert(bus.do_read((dmwe->pseg << 29) | (addr & 0x1fffffffu), 4, buffer));
+            bus_assert(bus.do_read((dmwe->pseg << 29) | (addr & 0x1fffffffu), 4, buffer));
             return std::make_pair(OK, 0);
         }
         if (cur_plv == plv3 && addr >= 0x80000000u) {
@@ -47,7 +57,7 @@ public:
         if (cur_plv > plv) {
             return std::make_pair(PPI, 0);
         }
-        assert(bus.do_read(pa, 4, buffer));
+        bus_assert(bus.do_read(pa, 4, buffer));
         return std::make_pair(OK, 0);
     }
 
@@ -56,12 +66,12 @@ public:
             return std::make_pair(ALE, 0);
         }
         if (!map) {
-            assert(bus.do_read(addr, size, buffer));
+            bus_assert(bus.do_read(addr, size, buffer));
             return std::make_pair(OK, 0);
         }
         auto dmwe = dmw_match(addr, cur_plv);
         if (dmwe != nullptr) {
-            assert(bus.do_read((dmwe->pseg << 29) | (addr & 0x1fffffffu), size, buffer));
+            bus_assert(bus.do_read((dmwe->pseg << 29) | (addr & 0x1fffffffu), size, buffer));
             return std::make_pair(OK, 0);
         }
         if (cur_plv == plv3 && addr >= 0x80000000u) {
@@ -78,21 +88,21 @@ public:
         if (cur_plv > plv) {
             return std::make_pair(PPI, 0);
         }
-        assert(bus.do_read(pa, size, buffer));
+        bus_assert(bus.do_read(pa, size, buffer));
         return std::make_pair(OK, 0);
     }
 
     la32r_exccode va_write(uint32_t addr, uint32_t size, uint8_t *buffer, la32r_plv cur_plv, bool map, uint8_t asid) {
-        if (addr % size == 0) {
+        if (addr % size != 0) {
             return std::make_pair(ALE, 0);
         }
         if (!map) {
-            assert(bus.do_write(addr, size, buffer));
+            bus_assert(bus.do_write(addr, size, buffer));
             return std::make_pair(OK, 0);
         }
-        auto dwme = dmw_match(addr, cur_plv);
-        if (dwme != nullptr) {
-            assert(bus.do_write((dmwe->pseg << 29) | (addr & 0x1fffffffu), size, buffer));
+        auto dmwe = dmw_match(addr, cur_plv);
+        if (dmwe != nullptr) {
+            bus_assert(bus.do_write((dmwe->pseg << 29) | (addr & 0x1fffffffu), size, buffer));
             return std::make_pair(OK, 0);
         }
         if (cur_plv == plv3 && addr >= 0x80000000u) {
@@ -112,7 +122,7 @@ public:
         if (!dirty) {
             return std::make_pair(PME, 0);
         }
-        assert(bus.do_write(pa, size, buffer));
+        bus_assert(bus.do_write(pa, size, buffer));
         return std::make_pair(OK, 0);
     }
 
@@ -135,10 +145,10 @@ public:
         tlb[index] = tlbe;
     }
 
-    void tlb_inv(bool (*pred)(const la32r_tlb &)) {
+    void tlb_inv(std::function<bool(const la32r_tlb &)> pred) {
         for (int i = 0; i < nr_tlb_entry; i++) {
             if (pred(tlb[i])) {
-                tlb[i] = 0;
+                memset(&tlb[i], 0, sizeof(la32r_tlb));
             }
         }
     }
@@ -186,8 +196,8 @@ private:
     }
 
     la32r_dmw *dmw_match(uint32_t va, la32r_plv cur_plv) {
-        for (int i = 0; i < sizeof(dmw) / sizeof(la32r_dmw); i++) {
-            if ((dmw[i] & (1 << cur_plv)) && (va >> 30) == dmw[i].vseg) {
+        for (unsigned int i = 0; i < sizeof(dmw) / sizeof(la32r_dmw); i++) {
+            if ((*((int *) &dmw[i]) & (1 << cur_plv)) && (va >> 29) == dmw[i].vseg) {
                 return &dmw[i];
             }
         }

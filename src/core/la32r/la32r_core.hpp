@@ -7,16 +7,18 @@
 
 #include <cstring>
 #include <cassert>
+#include <queue>
 
 template<int nr_tlb_entry = 32>
 class la32r_core {
 public:
-    la32r_core(uint32_t core_id, memory_bus &bus) : mmu(bus), csr(core_id, pc, mmu) {
+    la32r_core(uint32_t core_id, memory_bus &bus, bool trace) : mmu(bus), csr(core_id, pc, mmu), trace(trace) {
         reset();
     }
 
     void reset() {
         idle = false;
+        end = false;
         counter = 0;
         pc = 0x1c000000u;
         memset(GPR, 0, sizeof(GPR));
@@ -36,6 +38,10 @@ public:
         pc = new_pc;
     }
 
+    bool is_end() {
+        return end;
+    }
+
 private:
     void exec(uint8_t exc_int) {
         la32r_instr instr;
@@ -43,6 +49,12 @@ private:
         uint32_t next_pc;
         bool cur_control_trans = false;
         bool ine = false;
+        GPR[0] = 0;
+        counter += 1;
+        pc_trace.push(pc);
+        while (pc_trace.size() > 16) {
+            pc_trace.pop();
+        }
         csr.pre_exec(exc_int);
         if (csr.need_trap()) {
             idle = false;
@@ -53,7 +65,7 @@ private:
         if_exc = mmu.va_if(pc,
                            (uint8_t * ) & instr,
                            csr.get_cur_plv(),
-                           csr.get_crmd_da(),
+                           csr.get_crmd_pg(),
                            csr.get_asid());
         if (if_exc.first != OK) {
             csr.raise_trap(if_exc, pc);
@@ -144,7 +156,7 @@ private:
                     uint32_t va = GPR[instr._2ri14.rj] + (instr._2ri14.i14 << 2);
                     la32r_exccode exc = mmu.va_read(va, 4, (uint8_t * ) & temp,
                                                     csr.get_cur_plv(),
-                                                    csr.get_crmd_da(),
+                                                    csr.get_crmd_pg(),
                                                     csr.get_asid());
                     if (exc.first != OK) {
                         csr.raise_trap(exc, va);
@@ -159,7 +171,7 @@ private:
                     if (csr.get_llbit()) {
                         la32r_exccode exc = mmu.va_write(va, 4, (uint8_t * ) & GPR[instr._2ri14.rd],
                                                          csr.get_cur_plv(),
-                                                         csr.get_crmd_da(),
+                                                         csr.get_crmd_pg(),
                                                          csr.get_asid());
                         if (exc.first != OK) {
                             csr.raise_trap(exc, va);
@@ -213,7 +225,7 @@ private:
                         int8_t temp;
                         la32r_exccode exc = mmu.va_read(va, 1, (uint8_t * ) & temp,
                                                         csr.get_cur_plv(),
-                                                        csr.get_crmd_da(),
+                                                        csr.get_crmd_pg(),
                                                         csr.get_asid());
                         if (exc.first != OK) {
                             csr.raise_trap(exc, va);
@@ -227,7 +239,7 @@ private:
                         int16_t temp;
                         la32r_exccode exc = mmu.va_read(va, 2, (uint8_t * ) & temp,
                                                         csr.get_cur_plv(),
-                                                        csr.get_crmd_da(),
+                                                        csr.get_crmd_pg(),
                                                         csr.get_asid());
                         if (exc.first != OK) {
                             csr.raise_trap(exc, va);
@@ -241,7 +253,7 @@ private:
                         int32_t temp;
                         la32r_exccode exc = mmu.va_read(va, 4, (uint8_t * ) & temp,
                                                         csr.get_cur_plv(),
-                                                        csr.get_crmd_da(),
+                                                        csr.get_crmd_pg(),
                                                         csr.get_asid());
                         if (exc.first != OK) {
                             csr.raise_trap(exc, va);
@@ -254,7 +266,7 @@ private:
                         uint32_t va = GPR[instr._2ri12.rj] + instr._2ri12.i12;
                         la32r_exccode exc = mmu.va_write(va, 1, (uint8_t * ) & GPR[instr._2ri12.rd],
                                                          csr.get_cur_plv(),
-                                                         csr.get_crmd_da(),
+                                                         csr.get_crmd_pg(),
                                                          csr.get_asid());
                         if (exc.first != OK) {
                             csr.raise_trap(exc, va);
@@ -265,7 +277,7 @@ private:
                         uint32_t va = GPR[instr._2ri12.rj] + instr._2ri12.i12;
                         la32r_exccode exc = mmu.va_write(va, 2, (uint8_t * ) & GPR[instr._2ri12.rd],
                                                          csr.get_cur_plv(),
-                                                         csr.get_crmd_da(),
+                                                         csr.get_crmd_pg(),
                                                          csr.get_asid());
                         if (exc.first != OK) {
                             csr.raise_trap(exc, va);
@@ -276,7 +288,7 @@ private:
                         uint32_t va = GPR[instr._2ri12.rj] + instr._2ri12.i12;
                         la32r_exccode exc = mmu.va_write(va, 4, (uint8_t * ) & GPR[instr._2ri12.rd],
                                                          csr.get_cur_plv(),
-                                                         csr.get_crmd_da(),
+                                                         csr.get_crmd_pg(),
                                                          csr.get_asid());
                         if (exc.first != OK) {
                             csr.raise_trap(exc, va);
@@ -288,7 +300,7 @@ private:
                         uint8_t temp;
                         la32r_exccode exc = mmu.va_read(va, 1, (uint8_t * ) & temp,
                                                         csr.get_cur_plv(),
-                                                        csr.get_crmd_da(),
+                                                        csr.get_crmd_pg(),
                                                         csr.get_asid());
                         if (exc.first != OK) {
                             csr.raise_trap(exc, va);
@@ -302,7 +314,7 @@ private:
                         uint16_t temp;
                         la32r_exccode exc = mmu.va_read(va, 2, (uint8_t * ) & temp,
                                                         csr.get_cur_plv(),
-                                                        csr.get_crmd_da(),
+                                                        csr.get_crmd_pg(),
                                                         csr.get_asid());
                         if (exc.first != OK) {
                             csr.raise_trap(exc, va);
@@ -355,9 +367,16 @@ private:
                             set_GPR(instr._3r.rd, GPR[instr._3r.rj] * GPR[instr._3r.rk]);
                             break;
                         case MULH_W: {
-                            auto result =
+                            uint64_t result =
                                     static_cast<int64_t>(GPR[instr._3r.rj]) * static_cast<int64_t>(GPR[instr._3r.rk]);
-                            set_GPR(instr._3r.rd, (result >> 32) & 32);
+                            set_GPR(instr._3r.rd, result >> 32);
+                            break;
+                        }
+                        case MULH_WU: {
+                            uint64_t result =
+                                    static_cast<uint32_t>(GPR[instr._3r.rj]) * 1llu *
+                                    static_cast<uint32_t>(GPR[instr._3r.rk]);
+                            set_GPR(instr._3r.rd, result >> 32);
                             break;
                         }
                         case DIV_W:
@@ -379,6 +398,9 @@ private:
                             break;
                         case SYSCALL:
                             csr.raise_trap(std::make_pair(SYS, 0));
+                            if ((*((int *) &instr) & 0x7fff) == 0x11) {
+                                end = true;
+                            }
                             break;
                         case SLLI_W:
                             set_GPR(instr._3r.rd, GPR[instr._3r.rj] << instr._3r.rk);
@@ -479,11 +501,19 @@ private:
 
     void set_GPR(uint8_t index, uint32_t value) {
         GPR[index] = value;
+        if (trace) {
+            printf("pc = %08x,  reg = %02d, val = %08x\n", pc, index, value);
+            fflush(stdout);
+        }
     }
 
     int32_t cal_i26(unsigned int hi10, unsigned int lo16) {
-        return static_cast<int32_t>((hi << 16) | lo16) << 6 >> 6;
+        return static_cast<int32_t>((hi10 << 16) | lo16) << 6 >> 6;
     }
+
+    bool trace;
+    bool end;
+    std::queue <uint32_t> pc_trace;
 
     bool idle;
     uint64_t counter;
