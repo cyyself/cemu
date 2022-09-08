@@ -19,9 +19,14 @@ Easy to be used for difftest with [soc-simulator](https://github.com/cyyself/soc
   - TLB Support
   - Capable of booting Linux and ucore-thumips.
 
+- LoongArch32(Reduced)
+  - Support LoongArch32(Reduced) instruction set, except FP instructions
+  - TLB Support
+  - Capable of booting Linux and ucore-loongarch32
+
 ## TODO List
 
-- LoongArch32 support
+- LoongArch32(Full) support
 - Cache simulation support (Currently at out-of-tree `cache` branch)
 - RISC-V C Extension
 
