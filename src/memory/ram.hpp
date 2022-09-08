@@ -36,6 +36,20 @@ public:
         std::ifstream file(init_file,std::ios::in | std::ios::binary);
         file.read((char*)mem+start_addr,file_size);
     }
+    void load_text(uint64_t start_addr, const char *init_file) {
+        uint64_t file_size = 0;
+        std::ifstream file(init_file, std::ios::in);
+        std::string line;
+        while (std::getline(file, line)) {
+            uint32_t x = std::stoul(line, nullptr, 16);
+            *(mem + start_addr + file_size) = x;
+            file_size++;
+            if (file_size > mem_size) {
+                std::cerr << "ram size is not big enough for init file." << std::endl;
+                break;
+            }
+        }
+    }
     bool do_read (uint64_t start_addr, uint64_t size, unsigned char* buffer) {
         if (start_addr + size <= mem_size) {
             memcpy(buffer,&mem[start_addr],size);
