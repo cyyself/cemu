@@ -167,13 +167,13 @@ private:
             return false;
         }
         uint32_t offset = va & ((1 << tlbe->ps) - 1);
-        if (((va & (1 << tlbe->ps)) == 0) && tlbe->v0) {
+        if (!(va & (1 << tlbe->ps)) && tlbe->v0) {
             dirty = tlbe->d0;
             mat = tlbe->mat0;
             plv = tlbe->plv0;
             pa = (tlbe->ppn0 << tlbe->ps) | offset;
             return true;
-        } else if (((va & (1 << tlbe->ps)) == 1) && tlbe->v1) {
+        } else if ((va & (1 << tlbe->ps)) && tlbe->v1) {
             dirty = tlbe->d1;
             mat = tlbe->mat1;
             plv = tlbe->plv1;
@@ -183,7 +183,7 @@ private:
         return false;
     }
 
-    la32r_tlb *tlb_match(uint32_t va, uint8_t asid) {
+    la32r_tlb *tlb_match(uint32_t va, uint32_t asid) {
         for (int i = 0; i < nr_tlb_entry; i++) {
             if (tlb[i].e
                 && (asid == tlb[i].asid || tlb[i].g)

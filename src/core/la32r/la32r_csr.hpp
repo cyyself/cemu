@@ -202,7 +202,7 @@ public:
         }
         case PGDL:
         case PGDH: {
-            auto old_val = (csr_pgd *) ((index == PGDL) ? pgdl : pgdh);
+            auto old_val = (csr_pgd *) ((index == PGDL) ? &pgdl : &pgdh);
             auto new_val = (csr_pgd *) &value;
             old_val->base = new_val->base;
             break;
@@ -294,7 +294,7 @@ public:
             }
         }
         random = (random == 0) ? (nr_tlb_entry - 1) : (random - 1);
-        estat_reg->is = (estat_reg->is & 0b1100000000011u) | ((ext_int & 0b11111111u) << 2);
+        estat_reg->is = (estat_reg->is & 0b1100000000011u) | ((ext_int & 0b111111111u) << 2);
         if ((estat_reg->is & ecfg_reg->lie) != 0 && ((csr_crmd *) &crmd)->ie != 0) {
             raise_trap(std::make_pair(INT, 0));
         }
@@ -330,8 +330,8 @@ public:
             || exc.first == PIF || exc.first == PME || exc.first == PPI) {
             badv = bad_va;
         }
-        if (exc.first == TLBR || exc.first == PIL || exc.first == PIS || exc.first == PIF || exc.first == PME ||
-            exc.first == PPI) {
+        if (exc.first == TLBR || exc.first == PIL || exc.first == PIS || exc.first == PIF || exc.first == PME
+            || exc.first == PPI) {
             tlbehi_reg->vppn = bad_va >> 13;
         }
     }
@@ -408,8 +408,9 @@ public:
         auto tlbelo0_reg = (csr_tlbelo *) &tlbelo0;
         auto tlbelo1_reg = (csr_tlbelo *) &tlbelo1;
         auto tlbidx_reg = (csr_tlbidx *) &tlbidx;
+        auto estat_reg = (csr_estat *) &estat;
         mmu.tlb_wr(la32r_tlb{
-                !tlbidx_reg->ne,
+                !tlbidx_reg->ne || estat_reg->ecode == 0x3f,
                 asid_reg->asid,
                 tlbelo0_reg->g && tlbelo1_reg->g,
                 tlbidx_reg->ps,

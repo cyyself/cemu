@@ -30,6 +30,14 @@ public:
         return pc;
     }
 
+    void csr_cfg(uint32_t index, uint32_t value) {
+        csr.write(index, value);
+    }
+
+    void reg_cfg(uint32_t index, uint32_t value) {
+        GPR[index] = value;
+    }
+
     void step(uint8_t ext_int = 0) {
         exec(ext_int);
     }
@@ -502,8 +510,7 @@ private:
     void set_GPR(uint8_t index, uint32_t value) {
         GPR[index] = value;
         if (trace) {
-            printf("pc = %08x,  reg = %02d, val = %08x\n", pc, index, value);
-            fflush(stdout);
+            fprintf(stderr, "pc = %08x,  reg = %02d, val = %08x\n", pc, index, value);
         }
     }
 

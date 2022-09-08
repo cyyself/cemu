@@ -33,7 +33,7 @@ void sigint_handler(int x) {
     send_ctrl_c = true;
 }
 
-int main(int argc, const char *argv[]) {
+int nscscc_func(int argc, const char *argv[]) {
     memory_bus mmio;
 
     ram func_mem(1024 * 1024, "./func_lab19.bin");
@@ -64,6 +64,81 @@ int main(int argc, const char *argv[]) {
         core.step();
         confreg.tick();
         running = !core.is_end();
+    }
+    return 0;
+}
+
+int linux_run(int argc, const char *argv[]) {
+    signal(SIGINT, sigint_handler);
+
+    memory_bus cemu_mmio;
+
+    ram cemu_memory(128 * 1024 * 1024);
+    cemu_memory.load_binary(0x300000, "./vmlinux.bin");
+    cemu_memory.load_text(0x5f00000, "./init_5f.txt");
+    assert(cemu_mmio.add_dev(0, 128 * 1024 * 1024, &cemu_memory));
+
+    uart8250 uart;
+    std::thread *uart_input_thread = new std::thread(uart_input, std::ref(uart));
+    assert(cemu_mmio.add_dev(0x1fe001e0, 0x10, &uart));
+
+    la32r_core<32> core(0, cemu_mmio, false);
+    core.csr_cfg(0x180, 0xa0000001u);
+    core.csr_cfg(0x181, 0x00000001u);
+    core.csr_cfg(0x0, 0x10);
+    core.reg_cfg(4, 2);
+    core.reg_cfg(5, 0xa5f00000u);
+    core.reg_cfg(6, 0xa5f00080u);
+    core.jump(0xa07c5c28u);
+
+    while (true) {
+        core.step(uart.irq() << 1);
+        while (uart.exist_tx()) {
+            char c = uart.getc();
+            if (c != '\r') {
+                putchar(c);
+                fflush(stdout);
+            }
+        }
+        if (send_ctrl_c) {
+            uart.putc(3);
+            send_ctrl_c = false;
+        }
+    }
+    return 0;
+}
+
+int ucore_run(int argc, const char *argv[]) {
+    signal(SIGINT, sigint_handler);
+
+    memory_bus cemu_mmio;
+
+    ram cemu_memory(128 * 1024 * 1024);
+    cemu_memory.load_binary(0x000000, "./ucore-kernel-initrd.bin");
+    assert(cemu_mmio.add_dev(0, 128 * 1024 * 1024, &cemu_memory));
+
+    uart8250 uart;
+    std::thread *uart_input_thread = new std::thread(uart_input, std::ref(uart));
+    assert(cemu_mmio.add_dev(0x1fe001e0, 0x10, &uart));
+
+    la32r_core<32> core(0, cemu_mmio, false);
+    core.csr_cfg(0x180, 0xa0000011u);
+    core.csr_cfg(0x181, 0x80000001u);
+    core.csr_cfg(0x0, 0xb0);
+    core.jump(0xa0000000u);
+    while (true) {
+        core.step(uart.irq() << 1);
+        while (uart.exist_tx()) {
+            char c = uart.getc();
+            if (c != '\r') {
+                putchar(c);
+                fflush(stdout);
+            }
+        }
+        if (send_ctrl_c) {
+            uart.putc(3);
+            send_ctrl_c = false;
+        }
     }
     return 0;
 }
