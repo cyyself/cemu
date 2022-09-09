@@ -30,7 +30,7 @@ public:
         memset(dmw, 0, sizeof(dmw));
     }
 
-    la32r_exccode va_if(uint32_t addr, uint8_t *buffer, la32r_plv cur_plv, bool map, uint8_t asid) {
+    la32r_exccode va_if(uint32_t addr, uint8_t *buffer, la32r_plv cur_plv, bool map, uint32_t asid) {
         if (addr % 4 != 0) {
             return std::make_pair(ADE, ADEF_SUBCODE);
         }
@@ -61,7 +61,7 @@ public:
         return std::make_pair(OK, 0);
     }
 
-    la32r_exccode va_read(uint32_t addr, uint32_t size, uint8_t *buffer, la32r_plv cur_plv, bool map, uint8_t asid) {
+    la32r_exccode va_read(uint32_t addr, uint32_t size, uint8_t *buffer, la32r_plv cur_plv, bool map, uint32_t asid) {
         if (addr % size != 0) {
             return std::make_pair(ALE, 0);
         }
@@ -92,7 +92,7 @@ public:
         return std::make_pair(OK, 0);
     }
 
-    la32r_exccode va_write(uint32_t addr, uint32_t size, uint8_t *buffer, la32r_plv cur_plv, bool map, uint8_t asid) {
+    la32r_exccode va_write(uint32_t addr, uint32_t size, uint8_t *buffer, la32r_plv cur_plv, bool map, uint32_t asid) {
         if (addr % size != 0) {
             return std::make_pair(ALE, 0);
         }
@@ -126,7 +126,7 @@ public:
         return std::make_pair(OK, 0);
     }
 
-    bool tlb_search(uint32_t va, uint8_t asid, uint8_t &index) {
+    bool tlb_search(uint32_t va, uint32_t asid, uint8_t &index) {
         la32r_tlb *tlbe = tlb_match(va, asid);
         if (tlbe == nullptr) {
             return false;
@@ -158,7 +158,7 @@ public:
     }
 
 private:
-    bool page_trans(uint32_t va, uint8_t asid,
+    bool page_trans(uint32_t va, uint32_t asid,
                     bool &dirty, bool &to_refill, uint32_t &pa, la32r_mat &mat, la32r_plv &plv) {
         to_refill = false;
         auto tlbe = tlb_match(va, asid);
