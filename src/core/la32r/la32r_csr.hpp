@@ -392,6 +392,7 @@ public:
             tlbelo1_reg->v = tlbe.v1;
             tlbidx_reg->ps = tlbe.ps;
             tlbidx_reg->ne = 0;
+            asid_reg->asid = tlbe.asid;
         } else {
             tlbidx_reg->ne = 1;
             asid_reg->asid = 0;
