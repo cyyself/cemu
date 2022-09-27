@@ -73,6 +73,37 @@ enum rv64i_opcode {
     OPCODE_SYSTEM   = 0b1110011,
     OPCODE_AMO      = 0b0101111
 };
+
+// Concat(instr(1,0),instr(15,13))
+enum rv64c_opcode { // without f/d
+    OPCODE_C_ADDI4SPN=0b00000,
+    OPCODE_C_LW     = 0b00001,
+    OPCODE_C_LD     = 0b00011,
+    OPCODE_C_SW     = 0b00110,
+    OPCODE_C_SD     = 0b00111,
+    OPCODE_C_ADDI   = 0b01000,
+    OPCODE_C_ADDIW  = 0b01001,
+    OPCODE_C_LI     = 0b01010,
+    OPCODE_C_ADDI16SPN_LUI = 0b01011,
+    OPCODE_C_ALU    = 0b01100,
+    OPCODE_C_J      = 0b01101,
+    OPCODE_C_BEQZ   = 0b01110,
+    OPCODE_C_BNEZ   = 0b01111,
+    OPCODE_C_SLLI   = 0b10000,
+    OPCODE_C_LWSP   = 0b10010,
+    OPCODE_C_LDSP   = 0b10011,
+    OPCODE_C_JR_MV_EB_JALR_ADD = 0b100100,
+    OPCODE_C_SWSP   = 0b10110,
+    OPCODE_C_SDSP   = 0b10111
+};
+
+enum rv64c_funct2 {
+    FUNCT2_SUB      = 0b00,
+    FUNCT2_XOR_ADDW = 0b01,
+    FUNCT2_OR       = 0b10,
+    FUNCT2_AND      = 0b11
+};
+
 enum funct3_branch {
     FUNCT3_BEQ  = 0b000,
     FUNCT3_BNE  = 0b001,

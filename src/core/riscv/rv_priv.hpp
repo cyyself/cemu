@@ -27,7 +27,7 @@ public:
         mstatus->sxl = 2;
         mstatus->uxl = 2;
         csr_misa_def *isa = (csr_misa_def*)&misa;
-        isa->ext = rv_ext('i') | rv_ext('m') | rv_ext('a') | rv_ext('s') | rv_ext('u');
+        isa->ext = rv_ext('i') | rv_ext('m') | rv_ext('a') | rv_ext('c') | rv_ext('s') | rv_ext('u');
         isa->mxl = 2; // rv64
         isa->blank = 0;
         medeleg = 0;
@@ -345,23 +345,31 @@ public:
     }
     // Note: The core should raise exceptions when return value is not exc_custom_ok.
     // fetch instruction
-    rv_exc_code va_if(uint64_t start_addr, uint64_t size, uint8_t *buffer) {
-        const satp_def *satp_reg = (satp_def *)&satp;
-        if ( cur_priv == M_MODE || satp_reg->mode == 0) {
-            bool pstatus = bus.pa_read(start_addr,size,buffer);
-            if (!pstatus) return exc_instr_acc_fault;
-            else return exc_custom_ok;
+    rv_exc_code va_if(uint64_t start_addr, uint64_t size, uint8_t *buffer, uint64_t &bad_va) {
+        if (size == 4 && start_addr % 4 == 2) {
+            rv_exc_code res0 = va_if(start_addr,2,buffer,bad_va);
+            if (res0 != exc_custom_ok) return res0;
+            rv_exc_code res1 = va_if(start_addr+2,2,buffer+2,bad_va);
+            if (res0 != exc_custom_ok) return res0;
         }
         else {
-            // Note: If the pc misalign but didn't beyond page range, the exception should be raise by core.
-            if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_instr_misalign;
-            sv39_tlb_entry *tlb_e = sv39.local_tlbe_get(*satp_reg,start_addr);
-            if (!tlb_e || !tlb_e->A || !tlb_e->X) return exc_instr_pgfault;
-            if ( (cur_priv == U_MODE && !tlb_e->U) || (cur_priv == S_MODE && tlb_e->U)) return exc_instr_pgfault;
-            uint64_t pa = tlb_e->ppa + (start_addr % ( (tlb_e->pagesize==1)?(1<<12):((tlb_e->pagesize==2)?(1<<21):(1<<30))));
-            bool pstatus = bus.pa_read(pa,size,buffer);
-            if (!pstatus) return exc_instr_acc_fault;
-            else return exc_custom_ok;
+            const satp_def *satp_reg = (satp_def *)&satp;
+            if ( cur_priv == M_MODE || satp_reg->mode == 0) {
+                bool pstatus = bus.pa_read(start_addr,size,buffer);
+                if (!pstatus) return exc_instr_acc_fault;
+                else return exc_custom_ok;
+            }
+            else {
+                // Note: If the pc misalign but didn't beyond page range, the exception should be raise by core.
+                if ((start_addr >> 12) != ((start_addr + size - 1) >> 12)) return exc_instr_misalign;
+                sv39_tlb_entry *tlb_e = sv39.local_tlbe_get(*satp_reg,start_addr);
+                if (!tlb_e || !tlb_e->A || !tlb_e->X) return exc_instr_pgfault;
+                if ( (cur_priv == U_MODE && !tlb_e->U) || (cur_priv == S_MODE && tlb_e->U)) return exc_instr_pgfault;
+                uint64_t pa = tlb_e->ppa + (start_addr % ( (tlb_e->pagesize==1)?(1<<12):((tlb_e->pagesize==2)?(1<<21):(1<<30))));
+                bool pstatus = bus.pa_read(pa,size,buffer);
+                if (!pstatus) return exc_instr_acc_fault;
+                else return exc_custom_ok;
+            }
         }
     }
 
