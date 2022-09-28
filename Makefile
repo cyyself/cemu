@@ -7,7 +7,7 @@ HEADERS = $(shell find $(SRC_DIR) -name '*.hpp')
 OBJS = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
 CXX = g++
-CXXFLAGS = -lpthread -std=c++17 -O3 -Wall
+CXXFLAGS = -lpthread -std=c++17 -O3
 
 .PHONY: clean
 

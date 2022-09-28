@@ -350,7 +350,8 @@ public:
             rv_exc_code res0 = va_if(start_addr,2,buffer,bad_va);
             if (res0 != exc_custom_ok) return res0;
             rv_exc_code res1 = va_if(start_addr+2,2,buffer+2,bad_va);
-            if (res0 != exc_custom_ok) return res0;
+            if (res1 != exc_custom_ok) return res1;
+            return exc_custom_ok;
         }
         else {
             bad_va = start_addr;

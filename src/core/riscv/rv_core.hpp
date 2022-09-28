@@ -16,7 +16,7 @@ enum alu_op {
     ALU_NOP
 };
 
-#define binary_concat(value,r,l,shift) ((((value)>>(l))&(1<<((r)-(l)+1))-1)<<(shift))
+#define binary_concat(value,r,l,shift) ((((value)>>(l))&((1<<((r)-(l)+1))-1))<<(shift))
 
 #define PC_ALIGN 2
 
