@@ -353,6 +353,7 @@ public:
             if (res0 != exc_custom_ok) return res0;
         }
         else {
+            bad_va = start_addr;
             const satp_def *satp_reg = (satp_def *)&satp;
             if ( cur_priv == M_MODE || satp_reg->mode == 0) {
                 bool pstatus = bus.pa_read(start_addr,size,buffer);
