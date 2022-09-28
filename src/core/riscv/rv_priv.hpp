@@ -283,7 +283,7 @@ public:
                 break;
             case csr_stvec: {
                 csr_tvec_def *tvec = (csr_tvec_def*)&csr_data;
-                assert(tvec->mode <= 1);
+                if (tvec->mode > 1) tvec->mode = 0;
                 stvec = csr_data;
                 break;
             }
