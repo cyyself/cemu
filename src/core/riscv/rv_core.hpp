@@ -662,7 +662,7 @@ private:
                     uint8_t rs1 = 8 + binary_concat(cur_instr,9,7,0);
                     uint64_t mem_addr = GPR[rs1] + imm;
                     uint8_t rs2 = 8 + binary_concat(cur_instr,4,2,0);
-                    mem_write(mem_addr,8,(unsigned char*)&GPR[rs2]);
+                    mem_write(mem_addr,4,(unsigned char*)&GPR[rs2]);
                     break;
                 }
                 case OPCODE_C_SD: {
@@ -764,7 +764,6 @@ private:
                                     binary_concat(cur_instr,5,3,1) | binary_concat(cur_instr,2,2,5);
                     if (imm >> 11) imm |= 0xfffffffffffff000u; // sign extend [11]
                     uint64_t npc = pc + imm;
-                    set_GPR(1,pc + 2);
                     pc = npc;
                     new_pc = true;
                     break;
@@ -792,7 +791,7 @@ private:
                 case OPCODE_C_SLLI: {
                     int64_t imm =   binary_concat(cur_instr,12,12,5) | binary_concat(cur_instr,6,2,0);
                     uint8_t rs1 = binary_concat(cur_instr,11,7,0);
-                    if (imm) set_GPR(rs1,alu_exec(rs1,imm,ALU_SLL)); // nzimm
+                    if (imm) set_GPR(rs1,alu_exec(GPR[rs1],imm,ALU_SLL)); // nzimm
                     break;
                 }
                 case OPCODE_C_LWSP: {
@@ -829,7 +828,7 @@ private:
                                 if (npc & 1) npc ^= 1;
                                 if (npc % PC_ALIGN) priv.raise_trap(csr_cause_def(exc_instr_misalign),npc);
                                 else {
-                                    set_GPR(inst->j_type.rd,pc + 4);
+                                    set_GPR(1,pc + 2);
                                     pc = npc;
                                     new_pc = true;
                                 }
@@ -847,7 +846,6 @@ private:
                                 if (npc & 1) npc ^= 1;
                                 if (npc % PC_ALIGN) priv.raise_trap(csr_cause_def(exc_instr_misalign),npc);
                                 else {
-                                    set_GPR(inst->j_type.rd,pc + 2);
                                     pc = npc;
                                     new_pc = true;
                                 }

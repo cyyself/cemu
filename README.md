@@ -7,7 +7,7 @@ Easy to be used for difftest with [soc-simulator](https://github.com/cyyself/soc
 ## ISAs Support
 
 - RISC-V
-  - RV64IMA
+  - RV64IMAC
   - Support M-Mode, S-Mode and U-Mode
   - Sv39 MMU and TLB
   - RISC-V CLINT
@@ -28,7 +28,6 @@ Easy to be used for difftest with [soc-simulator](https://github.com/cyyself/soc
 
 - LoongArch32(Full) support
 - Cache simulation support (Currently at out-of-tree `cache` branch)
-- RISC-V C Extension
 
 ## Devices Support
 

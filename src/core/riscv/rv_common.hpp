@@ -77,7 +77,7 @@ enum rv64i_opcode {
 // Concat(instr(1,0),instr(15,13))
 enum rv64c_opcode { // without f/d
     OPCODE_C_ADDI4SPN=0b00000,
-    OPCODE_C_LW     = 0b00001,
+    OPCODE_C_LW     = 0b00010,
     OPCODE_C_LD     = 0b00011,
     OPCODE_C_SW     = 0b00110,
     OPCODE_C_SD     = 0b00111,
@@ -92,7 +92,7 @@ enum rv64c_opcode { // without f/d
     OPCODE_C_SLLI   = 0b10000,
     OPCODE_C_LWSP   = 0b10010,
     OPCODE_C_LDSP   = 0b10011,
-    OPCODE_C_JR_MV_EB_JALR_ADD = 0b100100,
+    OPCODE_C_JR_MV_EB_JALR_ADD = 0b10100,
     OPCODE_C_SWSP   = 0b10110,
     OPCODE_C_SDSP   = 0b10111
 };

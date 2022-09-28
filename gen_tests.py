@@ -6,7 +6,7 @@ file_list = []
 # build riscv-tests to this folder
 BUILD_DIR = "../riscv-tests/build/isa"
 DST_DIR = "./tests"
-TEST_PRIFIX = ["rv64ui-v-","rv64um-v-","rv64ua-v-","rv64mi-p-","rv64si-p-"]
+TEST_PRIFIX = ["rv64ui-v-","rv64um-v-","rv64ua-v-","rv64mi-p-","rv64si-p-","rv64uc-p-","rv64uc-v-"]
 for (dirpath, dirnames, filenames) in os.walk(BUILD_DIR):
     for x in filenames:
         if x.endswith(".dump"):
