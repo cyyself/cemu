@@ -884,7 +884,7 @@ private:
         if (priv.need_trap()) {
             pc = priv.get_trap_pc();
         }
-        else if (!new_pc) pc = pc + is_rvc ? 2 : 4;
+        else if (!new_pc) pc = pc + (is_rvc ? 2 : 4);
         priv.post_exec();
     }
     bool mem_read(uint64_t start_addr, uint64_t size, uint8_t *buffer) {
