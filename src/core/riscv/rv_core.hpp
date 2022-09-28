@@ -633,7 +633,8 @@ private:
                     uint8_t rd = 8 + binary_concat(cur_instr,4,2,0);
                     int64_t imm = binary_concat(cur_instr,12,11,4) | binary_concat(cur_instr,10,7,6) | binary_concat(cur_instr,6,6,2) | binary_concat(cur_instr,5,5,3);
                     int64_t value = GPR[2] + imm;
-                    if (imm) set_GPR(rd,value); // imm
+                    if (imm) set_GPR(rd,value); // nzimm
+                    else ri = true;
                     break;
                 }
                 case OPCODE_C_LW: {
