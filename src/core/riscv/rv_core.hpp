@@ -629,14 +629,14 @@ private:
             uint8_t rs2 = (cur_instr >> 2) & 0x1f;
             uint8_t rs2_c = (cur_instr >> 2) & 0x7;
             switch (rvc_opcode) {
-                OPCODE_C_ADDI4SPN: {
+                case OPCODE_C_ADDI4SPN: {
                     uint8_t rd = 8 + binary_concat(cur_instr,4,2,0);
                     int64_t imm = binary_concat(cur_instr,12,11,4) | binary_concat(cur_instr,10,7,6) | binary_concat(cur_instr,6,6,2) | binary_concat(cur_instr,5,5,3);
                     int64_t value = GPR[2] + imm;
                     if (imm) set_GPR(rd,value); // imm
                     break;
                 }
-                OPCODE_C_LW: {
+                case OPCODE_C_LW: {
                     uint64_t imm = (binary_concat(cur_instr,6,6,2) | binary_concat(cur_instr,5,5,6) | binary_concat(cur_instr,12,10,3));
                     uint8_t rs1 = 8 + binary_concat(cur_instr,9,7,0);
                     uint64_t mem_addr = GPR[rs1] + imm;
@@ -646,7 +646,7 @@ private:
                     if (ok) set_GPR(rd,buf);
                     break;
                 }
-                OPCODE_C_LD: {
+                case OPCODE_C_LD: {
                     uint64_t imm = (binary_concat(cur_instr,6,5,6) | binary_concat(cur_instr,12,10,3));
                     uint8_t rs1 = 8 + binary_concat(cur_instr,9,7,0);
                     uint64_t mem_addr = GPR[rs1] + imm;
@@ -656,7 +656,7 @@ private:
                     if (ok) set_GPR(rd,buf);
                     break;
                 }
-                OPCODE_C_SW: {
+                case OPCODE_C_SW: {
                     uint64_t imm = (binary_concat(cur_instr,6,6,2) | binary_concat(cur_instr,5,5,6) | binary_concat(cur_instr,12,10,3));
                     uint8_t rs1 = 8 + binary_concat(cur_instr,9,7,0);
                     uint64_t mem_addr = GPR[rs1] + imm;
@@ -664,7 +664,7 @@ private:
                     mem_write(mem_addr,8,(unsigned char*)&GPR[rs2]);
                     break;
                 }
-                OPCODE_C_SD: {
+                case OPCODE_C_SD: {
                     uint64_t imm = binary_concat(cur_instr,6,5,6) | binary_concat(cur_instr,12,10,3);
                     uint8_t rs1 = 8 + binary_concat(cur_instr,9,7,0);
                     uint64_t mem_addr = GPR[rs1] + imm;
@@ -672,28 +672,28 @@ private:
                     mem_write(mem_addr,8,(unsigned char*)&GPR[rs2]);
                     break;
                 }
-                OPCODE_C_ADDI: {
+                case OPCODE_C_ADDI: {
                     uint64_t imm = binary_concat(cur_instr,12,12,5) | binary_concat(cur_instr,6,2,0);
                     if (imm >> 5) imm |= 0xffffffffffffffc0u; // sign extend[5]
                     uint8_t rd = binary_concat(cur_instr,11,7,0);
                     if (imm) set_GPR(rd,alu_exec(GPR[rd],imm,ALU_ADD)); // nzimm
                     break;
                 }
-                OPCODE_C_ADDIW: {
+                case OPCODE_C_ADDIW: {
                     uint64_t imm = binary_concat(cur_instr,12,12,5) | binary_concat(cur_instr,6,2,0);
                     if (imm >> 5) imm |= 0xffffffffffffffc0u; // sign extend[5]
                     uint8_t rd = binary_concat(cur_instr,11,7,0);
                     set_GPR(rd,alu_exec(GPR[rd],imm,ALU_ADD,true));
                     break;
                 }
-                OPCODE_C_LI: {
+                case OPCODE_C_LI: {
                     int64_t imm = binary_concat(cur_instr,12,12,5) | binary_concat(cur_instr,6,2,0);
                     if (imm >> 5) imm |= 0xffffffffffffffc0u; // sign extend[5]
                     uint8_t rd = binary_concat(cur_instr,11,7,0);
                     set_GPR(rd,imm);
                     break;
                 }
-                OPCODE_C_ADDI16SPN_LUI: {
+                case OPCODE_C_ADDI16SPN_LUI: {
                     uint8_t rd = binary_concat(cur_instr,11,7,0);
                     if (rd == 2)  { // ADDI16SPN
                         int64_t imm = binary_concat(cur_instr,12,12,9) | binary_concat(cur_instr,6,6,4) | binary_concat(cur_instr,5,5,6) | binary_concat(cur_instr,4,3,7) | binary_concat(cur_instr,2,2,5);
@@ -708,7 +708,7 @@ private:
                     }
                     break;
                 }
-                OPCODE_C_ALU: {
+                case OPCODE_C_ALU: {
                     bool is_srli_srai = !(binary_concat(cur_instr,11,11,0));
                     uint8_t rs1 = 8 + binary_concat(cur_instr,9,7,0);
                     if (is_srli_srai) { // SRLI, SRAI
@@ -756,7 +756,7 @@ private:
                     }
                     break;
                 }
-                OPCODE_C_J: {
+                case OPCODE_C_J: {
                     int64_t imm =   binary_concat(cur_instr,12,12,11) | binary_concat(cur_instr,11,11,4) |
                                     binary_concat(cur_instr,10,9,8) | binary_concat(cur_instr,8,8,10) |
                                     binary_concat(cur_instr,7,7,6) | binary_concat(cur_instr,6,6,7) |
@@ -768,7 +768,7 @@ private:
                     new_pc = true;
                     break;
                 }
-                OPCODE_C_BEQZ: {
+                case OPCODE_C_BEQZ: {
                     int64_t imm =   binary_concat(cur_instr,12,12,8) | binary_concat(cur_instr,11,10,3) | binary_concat(cur_instr,6,5,6) | binary_concat(cur_instr,4,3,1) | binary_concat(cur_instr,2,2,5);
                     if (imm>>8) imm |= 0xfffffffffffffe00u; // sign extend [8]
                     uint8_t rs1 = 8 + binary_concat(cur_instr,9,7,0);
@@ -778,7 +778,7 @@ private:
                     }
                     break;
                 }
-                OPCODE_C_BNEZ: {
+                case OPCODE_C_BNEZ: {
                     int64_t imm =   binary_concat(cur_instr,12,12,8) | binary_concat(cur_instr,11,10,3) | binary_concat(cur_instr,6,5,6) | binary_concat(cur_instr,4,3,1) | binary_concat(cur_instr,2,2,5);
                     if (imm>>8) imm |= 0xfffffffffffffe00u; // sign extend [8]
                     uint8_t rs1 = 8 + binary_concat(cur_instr,9,7,0);
@@ -788,13 +788,13 @@ private:
                     }
                     break;
                 }
-                OPCODE_C_SLLI: {
+                case OPCODE_C_SLLI: {
                     int64_t imm =   binary_concat(cur_instr,12,12,5) | binary_concat(cur_instr,6,2,0);
                     uint8_t rs1 = binary_concat(cur_instr,11,7,0);
                     if (imm) set_GPR(rs1,alu_exec(rs1,imm,ALU_SLL)); // nzimm
                     break;
                 }
-                OPCODE_C_LWSP: {
+                case OPCODE_C_LWSP: {
                     uint64_t imm = (binary_concat(cur_instr,6,4,2) | binary_concat(cur_instr,3,2,6) | binary_concat(cur_instr,12,12,5));
                     uint64_t mem_addr = GPR[2] + imm;
                     uint8_t rd = binary_concat(cur_instr,11,7,0);
@@ -804,7 +804,7 @@ private:
                     // TODO: rd != 0
                     break;
                 }
-                OPCODE_C_LDSP: {
+                case OPCODE_C_LDSP: {
                     uint64_t imm = (binary_concat(cur_instr,6,5,3) | binary_concat(cur_instr,4,2,6) | binary_concat(cur_instr,12,12,5));
                     uint64_t mem_addr = GPR[2] + imm;
                     uint8_t rd = binary_concat(cur_instr,11,7,0);
@@ -814,7 +814,7 @@ private:
                     // TODO: rd != 0
                     break;
                 }
-                OPCODE_C_JR_MV_EB_JALR_ADD: {
+                case OPCODE_C_JR_MV_EB_JALR_ADD: {
                     bool is_ebreak_jalr_add = binary_concat(cur_instr,12,12,0);
                     uint8_t rs2 = binary_concat(cur_instr,6,2,0);
                     uint8_t rs1 = binary_concat(cur_instr,11,7,0);
@@ -859,14 +859,14 @@ private:
                     }
                     break;
                 }
-                OPCODE_C_SWSP: {
+                case OPCODE_C_SWSP: {
                     uint64_t imm = (binary_concat(cur_instr,12,9,2) | binary_concat(cur_instr,8,7,6));
                     uint64_t mem_addr = GPR[2] + imm;
                     uint8_t rs2 = binary_concat(cur_instr,6,2,0);
                     mem_write(mem_addr,4,(unsigned char*)&GPR[rs2]);
                     break;
                 }
-                OPCODE_C_SDSP: {
+                case OPCODE_C_SDSP: {
                     uint64_t imm = (binary_concat(cur_instr,12,10,3) | binary_concat(cur_instr,9,7,6));
                     uint64_t mem_addr = GPR[2] + imm;
                     uint8_t rs2 = binary_concat(cur_instr,6,2,0);
