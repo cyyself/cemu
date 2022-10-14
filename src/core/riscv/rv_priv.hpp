@@ -155,7 +155,8 @@ public:
                 csr_result = 0;
                 break;
             default:
-                return false;
+                csr_result = 0;
+                return true;
         }
         return true;
     }
@@ -225,7 +226,7 @@ public:
             case csr_tdata1:
                 break;
             default:
-                return false;
+                return true;
         }
         return true;
     }
