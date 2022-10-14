@@ -18,7 +18,7 @@ enum alu_op {
 
 #define binary_concat(value,r,l,shift) ((((value)>>(l))&((1<<((r)-(l)+1))-1))<<(shift))
 
-#define PC_ALIGN 2
+#define PC_ALIGN 4
 
 class rv_core {
 public:
@@ -511,6 +511,10 @@ private:
                                                     }
                                                     else {
                                                         printf("Failed with value 0x%lx\n",GPR[10]);
+                                                        while (!trace.empty()) {
+                                                            printf("%lx\n",trace.front());
+                                                            trace.pop();
+                                                        }
                                                         exit(1);
                                                     }
                                                 }
@@ -624,6 +628,8 @@ private:
             }
         }
         else {
+            ri = true;
+            /*
             // rvc
             uint8_t rvc_opcode = ( (cur_instr & 0b11) << 3) | ((cur_instr >> 13) & 0b111);
             uint8_t rs2 = (cur_instr >> 2) & 0x1f;
@@ -875,6 +881,7 @@ private:
                 default:
                     ri = true;
             }
+            */
         }
     exception:
         if (ri) {

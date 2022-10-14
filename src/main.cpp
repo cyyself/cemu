@@ -49,7 +49,7 @@ int main(int argc, const char* argv[]) {
 
     signal(SIGINT, sigint_handler);
 
-    const char *load_path = "../opensbi/build/platform/generic/firmware/fw_payload.bin";
+    const char *load_path = "../linux/vmlinux.bin";
     if (argc >= 2) load_path = argv[1];
     for (int i=1;i<argc;i++) if (strcmp(argv[i],"-rvtest") == 0) riscv_test = true;
 
@@ -59,10 +59,12 @@ int main(int argc, const char* argv[]) {
     rv_clint<2> clint;
     rv_plic <4,4> plic;
     ram dram(4096l*1024l*1024l,load_path);
+    ram dtb_stor(4096,"../opensbi/cemu.dtb");
     assert(system_bus.add_dev(0x2000000,0x10000,&clint));
     assert(system_bus.add_dev(0xc000000,0x4000000,&plic));
     assert(system_bus.add_dev(0x60100000,1024*1024,&uart));
     assert(system_bus.add_dev(0x80000000,2048l*1024l*1024l,&dram));
+    assert(system_bus.add_dev(0x60400000,4096,&dtb_stor));
 
     rv_core rv_0(system_bus,0);
     rv_0_ptr = &rv_0;
@@ -74,6 +76,8 @@ int main(int argc, const char* argv[]) {
     rv_0.jump(0x80000000);
     rv_1.jump(0x80000000);
     rv_1.set_GPR(10,1);
+    rv_0.set_GPR(11,0x60400000);
+    rv_1.set_GPR(11,0x60400000);
     // char uart_history[8] = {0};
     // int uart_history_idx = 0;
     bool delay_cr = false;
@@ -81,7 +85,7 @@ int main(int argc, const char* argv[]) {
         clint.tick();
         plic.update_ext(1,uart.irq());
         rv_0.step(plic.get_int(0),clint.m_s_irq(0),clint.m_t_irq(0),plic.get_int(1));
-        rv_1.step(plic.get_int(2),clint.m_s_irq(1),clint.m_t_irq(1),plic.get_int(3));
+        rv_1.step(0,clint.m_s_irq(1),clint.m_t_irq(1),plic.get_int(1));
         while (uart.exist_tx()) {
             char c = uart.getc();
             if (c == '\r') delay_cr = true;

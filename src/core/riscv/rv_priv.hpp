@@ -27,7 +27,7 @@ public:
         mstatus->sxl = 2;
         mstatus->uxl = 2;
         csr_misa_def *isa = (csr_misa_def*)&misa;
-        isa->ext = rv_ext('i') | rv_ext('m') | rv_ext('a') | rv_ext('c') | rv_ext('s') | rv_ext('u');
+        isa->ext = rv_ext('i') | rv_ext('m') | rv_ext('a') | rv_ext('u');
         isa->mxl = 2; // rv64
         isa->blank = 0;
         medeleg = 0;
@@ -141,53 +141,6 @@ public:
             case csr_minstret:
                 csr_result = minstret;
                 break;
-            case csr_sstatus: {
-                csr_result = 0;
-                csr_sstatus_def *sstatus = (csr_sstatus_def*)&csr_result;
-                csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
-                sstatus->sie = mstatus->sie;
-                sstatus->spie = mstatus->spie;
-                sstatus->ube = mstatus->ube;
-                sstatus->spp = mstatus->spp;
-                sstatus->vs = mstatus->vs;
-                sstatus->fs = mstatus->fs;
-                sstatus->xs = mstatus->xs;
-                sstatus->sum = mstatus->sum;
-                sstatus->mxr = mstatus->mxr;
-                sstatus->uxl = mstatus->uxl;
-                sstatus->sd = mstatus->sd;
-                break;
-            }
-            case csr_sie:
-                csr_result = ie & s_int_mask;
-                break;
-            case csr_stvec: 
-                csr_result = stvec;
-                break;
-            case csr_scounteren:
-                csr_result = scounteren;
-                break;
-            case csr_sscratch:
-                csr_result = sscratch;
-                break;
-            case csr_sepc:
-                csr_result = sepc;
-                break;
-            case csr_scause:
-                csr_result = scause;
-                break;
-            case csr_stval:
-                csr_result = stval;
-                break;
-            case csr_sip:
-                csr_result = ip & s_int_mask;
-                break;
-            case csr_satp: {
-                const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
-                if (cur_priv == S_MODE && mstatus->tvm) return false;
-                csr_result = satp;
-                break;
-            }
             case csr_cycle: {
                 csr_counteren_def *mcen = (csr_counteren_def*)&mcounteren;
                 csr_counteren_def *scen = (csr_counteren_def*)&scounteren;
@@ -211,20 +164,20 @@ public:
             case csr_mstatus: {
                 csr_mstatus_def *nstatus = (csr_mstatus_def*)&csr_data;
                 csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
-                mstatus->sie = nstatus->sie;
+                //mstatus->sie = nstatus->sie;
                 mstatus->mie = nstatus->mie;
-                mstatus->spie = nstatus->spie;
+                //mstatus->spie = nstatus->spie;
                 mstatus->mpie = nstatus->mpie;
                 assert(mstatus->spie != 2);
                 assert(mstatus->mpie != 2);
-                mstatus->spp = nstatus->spp;
-                mstatus->mpp = nstatus->mpp;
+                //mstatus->spp = nstatus->spp;
+                mstatus->mpp = (nstatus->mpp == 3 || nstatus->mpp == 0) ? nstatus->mpp : 0;
                 mstatus->mprv = nstatus->mprv;
-                mstatus->sum = nstatus->sum; // always true
-                mstatus->mxr = nstatus->mxr; // always true
-                mstatus->tvm = nstatus->tvm;
-                mstatus->tw = nstatus->tw; // not supported but wfi impl as nop
-                mstatus->tsr = nstatus->tsr;
+                // mstatus->sum = nstatus->sum; // always true
+                // mstatus->mxr = nstatus->mxr; // always true
+                //mstatus->tvm = nstatus->tvm;
+                //mstatus->tw = nstatus->tw; // not supported but wfi impl as nop
+                //mstatus->tsr = nstatus->tsr;
                 break;
             }
             case csr_misa: {
@@ -267,52 +220,6 @@ public:
             case csr_mcycle:
                 mcycle = csr_data;
                 break;
-            case csr_sstatus: {
-                csr_sstatus_def *nstatus = (csr_sstatus_def*)&csr_data;
-                csr_sstatus_def *sstatus = (csr_sstatus_def*)&status;
-                sstatus->sie = nstatus->sie;
-                sstatus->spie = nstatus->spie;
-                assert(sstatus->spie != 2);
-                sstatus->spp = nstatus->spp;
-                sstatus->sum = nstatus->sum;
-                sstatus->mxr = nstatus->mxr;
-                break;
-            }
-            case csr_sie:
-                ie = (ie & (~s_int_mask)) | (csr_data & s_int_mask);
-                break;
-            case csr_stvec: {
-                csr_tvec_def *tvec = (csr_tvec_def*)&csr_data;
-                if (tvec->mode > 1) tvec->mode = 0;
-                stvec = csr_data;
-                break;
-            }
-            case csr_scounteren:
-                scounteren = csr_data & counter_mask;
-                break;
-            case csr_sscratch:
-                sscratch = csr_data;
-                break;
-            case csr_sepc:
-                sepc = csr_data;
-                break;
-            case csr_scause:
-                scause = csr_data;
-                break;
-            case csr_stval:
-                scause = csr_data;
-                break;
-            case csr_sip:
-                ip = (ip & (~s_int_mask)) | (csr_data & s_int_mask);
-                break;
-            case csr_satp: {
-                const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
-                if (cur_priv == S_MODE && mstatus->tvm) return false;
-                satp_def *satp_reg = (satp_def*)&csr_data;
-                if (satp_reg->mode !=0 && satp_reg->mode != 8) satp_reg->mode = 0;
-                satp = csr_data;
-                break;
-            }
             case csr_tselect:
                 break;
             case csr_tdata1:

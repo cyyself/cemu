@@ -365,7 +365,7 @@ enum rv_int_code {
 // supervisor interrupt mask
 const uint64_t s_int_mask = (1ull<<int_s_ext) | (1ull<<int_s_sw) | (1ull<<int_s_timer);
 // machine interrupt mask
-const uint64_t m_int_mask = s_int_mask | (1ull<<int_m_ext) | (1ull<<int_m_sw) | (1ull<<int_m_timer);
+const uint64_t m_int_mask = (1ull<<int_m_ext) | (1ull<<int_m_sw) | (1ull<<int_m_timer);
 
 enum rv_exc_code {
     exc_instr_misalign  = 0,
