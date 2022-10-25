@@ -24,7 +24,6 @@ public:
         next_priv = M_MODE;
         status = 0;
         csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
-        mstatus->sxl = 2;
         mstatus->uxl = 2;
         csr_misa_def *isa = (csr_misa_def*)&misa;
         isa->ext = rv_ext('i') | rv_ext('m') | rv_ext('a') | rv_ext('u');
@@ -83,21 +82,6 @@ public:
     // If the csr didn't exist, return false. (and core should call raise_trap to raise illeagal instruction)
     bool csr_read(rv_csr_addr csr_index, uint64_t &csr_result) {
         switch (csr_index) {
-            case csr_mvendorid:
-                csr_result = 0;
-                break;
-            case csr_marchid:
-                csr_result = 0;
-                break;
-            case csr_mimpid:
-                csr_result = 0;
-                break;
-            case csr_mhartid:
-                csr_result = hart_id;
-                break;
-            case csr_mconfigptr:
-                csr_result = 0;
-                break;
             case csr_mstatus:
                 csr_result = status;
                 break;
@@ -142,21 +126,11 @@ public:
                 csr_result = minstret;
                 break;
             case csr_cycle: {
-                csr_counteren_def *mcen = (csr_counteren_def*)&mcounteren;
-                csr_counteren_def *scen = (csr_counteren_def*)&scounteren;
-                if (cur_priv <= S_MODE && (!mcen->cycle || !scen->cycle)) return false;
                 csr_result = mcycle;
                 break;
             }
-            case csr_tselect:
-                csr_result = 1;
-                break;
-            case csr_tdata1:
-                csr_result = 0;
-                break;
             default:
                 csr_result = 0;
-                return true;
         }
         return true;
     }
@@ -181,15 +155,6 @@ public:
                 //mstatus->tsr = nstatus->tsr;
                 break;
             }
-            case csr_misa: {
-                break;
-            }
-            case csr_medeleg:
-                medeleg = csr_data & s_exc_mask;
-                break;
-            case csr_mideleg:
-                mideleg = csr_data & s_int_mask;
-                break;
             case csr_mie:
                 ie = csr_data & m_int_mask;
                 break;
@@ -197,10 +162,6 @@ public:
                 csr_tvec_def *tvec = (csr_tvec_def*)&csr_data;
                 assert(tvec->mode <= 1);
                 mtvec = csr_data;
-                break;
-            }
-            case csr_mcounteren: {
-                mcounteren = csr_data & counter_mask;
                 break;
             }
             case csr_mscratch:
@@ -220,10 +181,6 @@ public:
                 break;
             case csr_mcycle:
                 mcycle = csr_data;
-                break;
-            case csr_tselect:
-                break;
-            case csr_tdata1:
                 break;
             default:
                 return true;
@@ -247,7 +204,13 @@ public:
         return ret;
     }
     bool csr_op_permission_check(uint16_t csr_index, bool write) {
-        if ( ((csr_index >> 8) & 3) > cur_priv) return false;
+        /*
+            We can make a simple implementation for csr_cycle as following:
+            0. "cycle" is the only CSR we need to implement to pass the RISC-V Test.
+            1. mcounteren can be read only zero, so any privilege level other than Machine will cause trap.
+            2. If S-Mode didn't implemented, we can just check whether privilege mode is Machine.
+         */
+        if (cur_priv != M_MODE) return false;
         if ( (((csr_index >> 10) & 3) == 3) && write) return false;
         return true;
     }

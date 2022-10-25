@@ -56,8 +56,8 @@ int main(int argc, const char* argv[]) {
     rv_systembus system_bus;
 
     uartlite uart;
-    rv_clint<2> clint;
-    rv_plic <4,4> plic;
+    rv_clint<1> clint;
+    rv_plic <1,1> plic;
     ram dram(4096l*1024l*1024l,load_path);
     ram dtb_stor(4096,"../opensbi/cemu.dtb");
     assert(system_bus.add_dev(0x2000000,0x10000,&clint));
@@ -68,24 +68,18 @@ int main(int argc, const char* argv[]) {
 
     rv_core rv_0(system_bus,0);
     rv_0_ptr = &rv_0;
-    rv_core rv_1(system_bus,1);
-    rv_1_ptr = &rv_1;
 
     std::thread        uart_input_thread(uart_input,std::ref(uart));
 
     rv_0.jump(0x80000000);
-    rv_1.jump(0x80000000);
-    rv_1.set_GPR(10,1);
     rv_0.set_GPR(11,0x60400000);
-    rv_1.set_GPR(11,0x60400000);
     // char uart_history[8] = {0};
     // int uart_history_idx = 0;
     bool delay_cr = false;
     while (1) {
         clint.tick();
         plic.update_ext(1,uart.irq());
-        rv_0.step(plic.get_int(0),clint.m_s_irq(0),clint.m_t_irq(0),plic.get_int(1));
-        rv_1.step(0,clint.m_s_irq(1),clint.m_t_irq(1),plic.get_int(1));
+        rv_0.step(plic.get_int(0),clint.m_s_irq(0),clint.m_t_irq(0),0);
         while (uart.exist_tx()) {
             char c = uart.getc();
             if (c == '\r') delay_cr = true;
@@ -102,7 +96,7 @@ int main(int argc, const char* argv[]) {
             uart.putc(3);
             send_ctrl_c = false;
         }
-        //printf("%lx %lx\n",rv_0.getPC(),rv_1.getPC());
+        //printf("%lx\n",rv_0.getPC());
     }
     return 0;
 }
