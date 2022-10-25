@@ -206,9 +206,9 @@ public:
     bool csr_op_permission_check(uint16_t csr_index, bool write) {
         /*
             We can make a simple implementation for csr_cycle as following:
-            0. "cycle" is the only CSR we need to implement to pass the RISC-V Test.
+            0. "cycle" is the only user level CSR we need to implement to pass the RISC-V Test.
             1. mcounteren can be read only zero, so any privilege level other than Machine will cause trap.
-            2. If S-Mode didn't implemented, we can just check whether privilege mode is Machine.
+            2. If S-Mode didn't implement, we can just check whether the privilege mode is Machine for illegal instruction check.
          */
         if (cur_priv != M_MODE) return false;
         if ( (((csr_index >> 10) & 3) == 3) && write) return false;
