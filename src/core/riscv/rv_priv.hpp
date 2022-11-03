@@ -82,6 +82,21 @@ public:
     // If the csr didn't exist, return false. (and core should call raise_trap to raise illeagal instruction)
     bool csr_read(rv_csr_addr csr_index, uint64_t &csr_result) {
         switch (csr_index) {
+            case csr_mvendorid:
+                csr_result = 0;
+                break;
+            case csr_marchid:
+                csr_result = 0;
+                break;
+            case csr_mimpid:
+                csr_result = 0;
+                break;
+            case csr_mhartid:
+                csr_result = hart_id;
+                break;
+            case csr_mconfigptr:
+                csr_result = 0;
+                break;
             case csr_mstatus:
                 csr_result = status;
                 break;
@@ -129,13 +144,24 @@ public:
                 csr_result = mcycle;
                 break;
             }
-            default:
+            case csr_tselect:
+                csr_result = 1;
+                break;
+            case csr_tdata1:
                 csr_result = 0;
+                break;
+            default: {
+                csr_result = 0;
+                return false;
+            }
         }
         return true;
     }
     bool csr_write(rv_csr_addr csr_index, uint64_t csr_data) {
         switch (csr_index) {
+            case csr_misa: {
+                break;
+            }
             case csr_mstatus: {
                 csr_mstatus_def *nstatus = (csr_mstatus_def*)&csr_data;
                 csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
@@ -164,6 +190,9 @@ public:
                 mtvec = csr_data;
                 break;
             }
+            case csr_mcounteren: {
+                break;
+            }
             case csr_mscratch:
                 mscratch = csr_data;
                 break;
@@ -182,8 +211,12 @@ public:
             case csr_mcycle:
                 mcycle = csr_data;
                 break;
+            case csr_tselect:
+                break;
+            case csr_tdata1:
+                break;
             default:
-                return true;
+                return false;
         }
         return true;
     }
