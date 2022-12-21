@@ -561,7 +561,7 @@ private:
                     }
                     case FUNCT3_CSRRW: {
                         rv_csr_addr csr_index = static_cast<rv_csr_addr>(inst->i_type.imm12&((1<<12)-1));
-                        ri = !priv.csr_op_permission_check(csr_index,inst->i_type.rs1 != 0);
+                        ri = !priv.csr_op_permission_check(csr_index,true);
                         uint64_t csr_result;
                         if (!ri) ri = !priv.csr_read(csr_index,csr_result);
                         if (!ri) ri = !priv.csr_write(csr_index,GPR[inst->i_type.rs1]);
@@ -588,7 +588,7 @@ private:
                     }
                     case FUNCT3_CSRRWI: {
                         rv_csr_addr csr_index = static_cast<rv_csr_addr>(inst->i_type.imm12&((1<<12)-1));
-                        ri = !priv.csr_op_permission_check(csr_index,inst->i_type.rs1 != 0);
+                        ri = !priv.csr_op_permission_check(csr_index,true);
                         uint64_t csr_result;
                         if (!ri) ri = !priv.csr_read(csr_index,csr_result);
                         if (!ri) ri = !priv.csr_write(csr_index,inst->i_type.rs1);
