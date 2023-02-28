@@ -300,7 +300,7 @@ public:
                 scause = csr_data;
                 break;
             case csr_stval:
-                scause = csr_data;
+                stval = csr_data;
                 break;
             case csr_sip:
                 ip = (ip & (~s_int_mask)) | (csr_data & s_int_mask);
