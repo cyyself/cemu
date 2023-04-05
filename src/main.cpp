@@ -166,6 +166,7 @@ void linux_run(int argc, const char* argv[]) {
         while (uart.exist_tx()) {
             char c = uart.getc();
             if (c != '\r') std::cout << c;
+            std::cout.flush();
             /*
             if (c == '\r') delay_cr = true;
             else {
@@ -208,7 +209,7 @@ void linux_run(int argc, const char* argv[]) {
 int main(int argc, const char* argv[]) {
     // nscscc_func();
     // nscscc_perf();
-    ucore_run(argc, argv);
-    // linux_run(argc, argv);
+    // ucore_run(argc, argv);
+    linux_run(argc, argv);
     return 0;
 }
