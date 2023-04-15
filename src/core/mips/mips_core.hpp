@@ -675,7 +675,7 @@ private:
             case OPCODE_J: {
                 // J
                 assert(!next_delay_slot);
-                delay_npc = (pc & 0xf0000000) | (instr.j_type.imm << 2);
+                delay_npc = ((pc+4) & 0xf0000000) | (instr.j_type.imm << 2);
                 next_delay_slot = true;
                 next_control_trans = true;
                 j_cnt ++;
@@ -685,7 +685,7 @@ private:
                 // JAL
                 assert(!next_delay_slot);
                 set_GPR(31, pc + 8);
-                delay_npc = (pc & 0xf0000000) | (instr.j_type.imm << 2);
+                delay_npc = ((pc+4) & 0xf0000000) | (instr.j_type.imm << 2);
                 next_delay_slot = true;
                 next_control_trans = true;
                 break;
