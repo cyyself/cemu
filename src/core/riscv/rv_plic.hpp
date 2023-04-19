@@ -25,7 +25,6 @@ public:
         }
     }
     void update_ext(int source_id, bool fired) {
-        pending[source_id/32] &= ~(1u << (source_id % 32));
         if (fired) pending[source_id/32] |= 1u << (source_id % 32);
     }
     bool get_int(int context_id) {
@@ -116,6 +115,7 @@ public:
             }
             else if (offset == 4) { // claim/complete
                 claimed[(*((uint32_t*)buffer))/32] &= ~(1u << ((*((uint32_t*)buffer)%32)));
+                pending[(*((uint32_t*)buffer))/32] &= ~(1u << ((*((uint32_t*)buffer)%32)));
                 return true;
             }
             else return false;
