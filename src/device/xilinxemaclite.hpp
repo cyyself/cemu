@@ -207,7 +207,6 @@ public:
     }
 private:
     char mac_addr[6];
-    const unsigned char bcast_addr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     xel_gie_reg     gie;
     xel_tx_ctrl_reg tx_ping_ctrl;
     xel_rx_ctrl_reg rx_ping_ctrl;
