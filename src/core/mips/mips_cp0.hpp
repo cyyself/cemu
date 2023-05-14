@@ -41,7 +41,7 @@ public:
         cause = 0;
         epc = 0;
         prid = 0x00018003;
-        ebase = 0x8000000u;
+        ebase = 0x80000000u;
         config0 = 0;
         cp0_config0 *config0_reg = (cp0_config0*)&config0;
         config0_reg->k0 = 3;
