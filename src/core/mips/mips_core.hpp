@@ -817,7 +817,10 @@ private:
                 uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
                 uint32_t buf;
                 mips32_exccode stat = mmu.va_read(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
-                if (stat != EXC_OK) cp0.raise_trap(stat, vaddr, tlb_invalid);
+                if (stat != EXC_OK) {
+                    if (stat == EXC_TLBL) stat = EXC_TLBS;
+                    cp0.raise_trap(stat, vaddr, tlb_invalid);
+                }
                 else {
                     switch (vaddr % 4) {
                         case 0:
@@ -845,7 +848,10 @@ private:
                 uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
                 uint32_t buf;
                 mips32_exccode stat = mmu.va_read(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
-                if (stat != EXC_OK) cp0.raise_trap(stat, vaddr, tlb_invalid);
+                if (stat != EXC_OK) {
+                    if (stat == EXC_TLBL) stat = EXC_TLBS;
+                    cp0.raise_trap(stat, vaddr, tlb_invalid);
+                }
                 else {
                     switch (vaddr % 4) {
                         case 0:
