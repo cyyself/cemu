@@ -10,10 +10,7 @@
 #include <queue>
 #include <set>
 
-void debug() {
-
-}
-
+template <int nr_tlb_entry = 8>
 class mips_core {
 public:
     mips_core(memory_bus &bus):mmu(bus),cp0(pc,in_delay_slot,mmu) {
@@ -988,8 +985,8 @@ private:
     uint32_t delay_npc;
     int32_t GPR[32];
     uint32_t hi,lo;
-    mips_mmu<16> mmu;
-    mips_cp0<16> cp0;
+    mips_mmu<nr_tlb_entry> mmu;
+    mips_cp0<nr_tlb_entry> cp0;
 };
 
 
