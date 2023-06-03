@@ -33,7 +33,7 @@ extern "C" {
         assert(system_bus.add_dev(0xc000000,0x4000000,&plic));
         assert(system_bus.add_dev(0x60100000,1024*1024,&uart));
         assert(system_bus.add_dev(0x80000000,2048l*1024l*1024l,&dram));
-        assert(system_bus.add_dev(0x10010000,0x1000,&bridge));
+        assert(system_bus.add_dev(0x10010000,0x1000,&bridge,true));
         
 
         rv_core rv_0(system_bus,0);
