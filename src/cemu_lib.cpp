@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <thread>
 #include <signal.h>
+#include "qemu_bridge.hpp"
 
 bool riscv_test = false;
 
@@ -27,10 +28,13 @@ extern "C" {
         rv_clint<2> clint;
         rv_plic <4,4> plic;
         ram dram(4096l*1024l*1024l,load_path);
+        qemu_bridge bridge;
         assert(system_bus.add_dev(0x2000000,0x10000,&clint));
         assert(system_bus.add_dev(0xc000000,0x4000000,&plic));
         assert(system_bus.add_dev(0x60100000,1024*1024,&uart));
         assert(system_bus.add_dev(0x80000000,2048l*1024l*1024l,&dram));
+        assert(system_bus.add_dev(0x10010000,0x1000,&bridge));
+        
 
         rv_core rv_0(system_bus,0);
         rv_0_ptr = &rv_0;
