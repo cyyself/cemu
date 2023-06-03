@@ -8,7 +8,7 @@
 
 class memory_bus : public mmio_dev {
 public:
-    bool add_dev(uint64_t start_addr, uint64_t length, mmio_dev *dev) {
+    bool add_dev(uint64_t start_addr, uint64_t length, mmio_dev *dev, bool raw_addr = false) {
         std::pair<uint64_t, uint64_t> addr_range = std::make_pair(start_addr,start_addr+length);
         if (start_addr % length) return false;
         // check range
@@ -25,7 +25,7 @@ public:
             if (l_max < r_min) return false; // overleap
         }
         // overleap check pass
-        devices[addr_range] = dev;
+        devices[addr_range] = std::make_pair(dev,raw_addr);
         return true;
     }
     bool do_read(uint64_t start_addr, uint64_t size, unsigned char* buffer) {
@@ -35,7 +35,7 @@ public:
         uint64_t end_addr = start_addr + size;
         if (it->first.first <= start_addr && end_addr <= it->first.second) {
             uint64_t dev_size = it->first.second - it->first.first;
-            return it->second->do_read(start_addr % dev_size, size, buffer);
+            return it->second.first->do_read(it->second.second ? start_addr : start_addr % dev_size, size, buffer);
         }
         else return false;
     }
@@ -46,12 +46,12 @@ public:
         uint64_t end_addr = start_addr + size;
         if (it->first.first <= start_addr && end_addr <= it->first.second) {
             uint64_t dev_size = it->first.second - it->first.first;
-            return it->second->do_write(start_addr % dev_size, size, buffer);
+            return it->second.first->do_write(it->second.second ? start_addr : start_addr % dev_size, size, buffer);
         }
         else return false;
     }
 private:
-    std::map < std::pair<uint64_t,uint64_t>, mmio_dev* > devices;
+    std::map < std::pair<uint64_t,uint64_t>, std::pair<mmio_dev*,bool> > devices;
 };
 
 #endif
