@@ -67,8 +67,8 @@ public:
         rx.push(c);
     }
     char getc() {
-        std::unique_lock<std::mutex> lock(tx_lock);
         if (!tx.empty()) {
+            std::unique_lock<std::mutex> lock(tx_lock);
             char res = tx.front();
             tx.pop();
             if (tx.empty()) wait_ack = true;
@@ -77,11 +77,9 @@ public:
         else return EOF;
     }
     bool exist_tx() {
-        std::unique_lock<std::mutex> lock(tx_lock);
         return !tx.empty();
     }
     bool irq() {
-        std::unique_lock<std::mutex> lock(rx_lock);
         return !rx.empty() || wait_ack;
     }
 private:

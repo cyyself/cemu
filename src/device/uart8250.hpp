@@ -158,8 +158,8 @@ public:
         rx.push(c);
     }
     char getc() {
-        std::unique_lock<std::mutex> lock(tx_lock);
         if (!tx.empty()) {
+            std::unique_lock<std::mutex> lock(tx_lock);
             char res = tx.front();
             tx.pop();
             if (tx.empty()) thr_empty = true;
@@ -172,7 +172,6 @@ public:
         return !(IIR & 1);
     }
     bool exist_tx() {
-        std::unique_lock<std::mutex> lock(tx_lock);
         return !tx.empty();
     }
 private:
