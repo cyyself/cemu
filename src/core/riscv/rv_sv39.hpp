@@ -62,8 +62,9 @@ public:
         sv39_va *va_struct = (sv39_va*)&va;
         assert((va_struct->blank == 0b1111111111111111111111111 && (va_struct->vpn_2 >> 8)) || (va_struct->blank == 0 && ((va_struct->vpn_2 >> 8) == 0)));
         // we should raise access fault before call sv39
-        sv39_tlb_entry *res = local_tlb_get(satp,va);
-        if (res) {
+        sv39_tlb_entry *res = NULL;
+        // local_tlb_get(satp,va);
+        // if (res) {
             /*
             sv39_pte pte2;
             uint64_t page_size2;
@@ -83,15 +84,15 @@ public:
             myassert(res->A <= pte2.A,*((uint64_t*)&satp),va,"A");
             myassert(res->D <= pte2.D,*((uint64_t*)&satp),va,"D");
              */
-            return res;
-        }
+            // return res;
+        // }
         // slow path, ptw
         sv39_pte pte;
         uint64_t page_size;
         bool ptw_result = ptw(satp,va,pte,page_size);
         if (!ptw_result) return NULL; // return null when page fault.
         // write back to tlb
-        res = &tlb[random];
+        res = &tlb[0];
         random = (random + 1) % nr_tlb_entry;
         res->ppa = (((((uint64_t)pte.PPN2 << 9) | (uint64_t)pte.PPN1) << 9) | (uint64_t)pte.PPN0) << 12;
         res->vpa = (page_size == (1<<12)) ? (va - (va % (1<<12))) : (page_size == (1<<21)) ? (va - (va % (1<<21))) : (va - (va % (1<<30)));
@@ -104,7 +105,7 @@ public:
         res->G = pte.G;
         res->A = pte.A;
         res->D = pte.D;
-        if (local_tlb_get(satp,va) != res) assert(false);
+        //if (local_tlb_get(satp,va) != res) assert(false);
         return res;
     }
 private:
