@@ -18,11 +18,14 @@ bool riscv_test = false;
 
 rv_core *rv_0_ptr;
 rv_core *rv_1_ptr;
-
+rv_systembus system_bus;
 
 extern "C" {
+    void cemu_dma(uint64_t addr, void *buf, uint64_t len, bool is_write) {
+        if (is_write) system_bus.pa_write(addr, len, (uint8_t*)buf);
+        else system_bus.pa_read(addr, len, (uint8_t*)buf);
+    }
     void cemu_main(const char* load_path) {
-        rv_systembus system_bus;
 
         uartlite uart;
         rv_clint<2> clint;
