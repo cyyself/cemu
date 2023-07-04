@@ -19,17 +19,20 @@ bool riscv_test = false;
 rv_core *rv_0_ptr;
 rv_core *rv_1_ptr;
 rv_systembus system_bus;
+rv_plic <4,4> plic;
 
 extern "C" {
     void cemu_dma(uint64_t addr, void *buf, uint64_t len, bool is_write) {
         if (is_write) system_bus.pa_write(addr, len, (uint8_t*)buf);
         else system_bus.pa_read(addr, len, (uint8_t*)buf);
     }
+    void cemu_irq(int plic_source) {
+        plic.update_ext(plic_source, true);
+    }
     void cemu_main(const char* load_path) {
 
         uartlite uart;
         rv_clint<2> clint;
-        rv_plic <4,4> plic;
         ram dram(4096l*1024l*1024l,load_path);
         qemu_bridge bridge;
         assert(system_bus.add_dev(0x2000000,0x10000,&clint));
