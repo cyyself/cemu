@@ -59,11 +59,9 @@ int nscscc_func(int argc, const char *argv[]) {
     assert(mmio.add_dev(0xbfaf0000, 0x10000, &confreg));
 
     la32r_core<32> core(0, mmio, true);
-    bool running = true;
-    while (running) {
+    while (!core.is_end()) {
         core.step();
         confreg.tick();
-        running = !core.is_end();
     }
     return 0;
 }
@@ -91,7 +89,7 @@ int linux_run(int argc, const char *argv[]) {
     core.reg_cfg(6, 0xa5f00080u);
     core.jump(0xa07c5c28u);
 
-    while (true) {
+    while (!core.is_end()) {
         core.step(uart.irq() << 1);
         while (uart.exist_tx()) {
             char c = uart.getc();
@@ -126,7 +124,7 @@ int ucore_run(int argc, const char *argv[]) {
     core.csr_cfg(0x181, 0x80000001u);
     core.csr_cfg(0x0, 0xb0);
     core.jump(0xa0000000u);
-    while (true) {
+    while (!core.is_end()) {
         core.step(uart.irq() << 1);
         while (uart.exist_tx()) {
             char c = uart.getc();
