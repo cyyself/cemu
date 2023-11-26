@@ -20,16 +20,14 @@ struct sv39_tlb_entry {
     bool  D; // dirty
 };
 
-uint64_t pa_pc;
-
-/*
-void myassert(bool exp, uint64_t satp, uint64_t va, const char* msg = "") {
+#ifdef MM_SANITIZER
+void mmassert(bool exp, uint64_t satp, uint64_t va, const char* msg = "") {
     if (!exp) {
         printf("TLB Assert False. satp=%lx, va=%lx\n",satp,va);
         printf("%s\n",msg);
     }
 }
-*/
+#endif
 template <unsigned int nr_tlb_entry = 32>
 class rv_sv39 {
 public:
@@ -64,25 +62,25 @@ public:
         // we should raise access fault before call sv39
         sv39_tlb_entry *res = local_tlb_get(satp,va);
         if (res) {
-            /*
+#ifdef MM_SANITIZER
             sv39_pte pte2;
             uint64_t page_size2;
             bool ptw_result2 = ptw(satp,va,pte2,page_size2);
-            myassert(ptw_result2,*((uint64_t*)&satp),va,"ptw ok");
+            mmassert(ptw_result2,*((uint64_t*)&satp),va,"ptw ok");
             uint64_t ppa = (((((uint64_t)pte2.PPN2 << 9) | (uint64_t)pte2.PPN1) << 9) | (uint64_t)pte2.PPN0) << 12;
-            myassert(ppa == res->ppa,*((uint64_t*)&satp),va,"ppa");
-            myassert(satp.asid == res->asid || pte2.G,*((uint64_t*)&satp),va,"asid");
-            myassert( (8ll<<(res->pagesize * 9)) == page_size2,*((uint64_t*)&satp),va,"page_size");
-            myassert(res->R <= pte2.R,*((uint64_t*)&satp),va,"R");
+            mmassert(ppa == res->ppa,*((uint64_t*)&satp),va,"ppa");
+            mmassert(satp.asid == res->asid || pte2.G,*((uint64_t*)&satp),va,"asid");
+            mmassert( (8ll<<(res->pagesize * 9)) == page_size2,*((uint64_t*)&satp),va,"page_size");
+            mmassert(res->R <= pte2.R,*((uint64_t*)&satp),va,"R");
             if (res->W != pte2.W) printf("error at asid %lx\n",(uint64_t)satp.asid);
             // res->W = pte2.W;
-            myassert(res->W <= pte2.W,*((uint64_t*)&satp),va,"W");
-            myassert(res->X <= pte2.X,*((uint64_t*)&satp),va,"X");
-            myassert(res->U <= pte2.U,*((uint64_t*)&satp),va,"U");
-            myassert(res->G == pte2.G,*((uint64_t*)&satp),va,"G");
-            myassert(res->A <= pte2.A,*((uint64_t*)&satp),va,"A");
-            myassert(res->D <= pte2.D,*((uint64_t*)&satp),va,"D");
-             */
+            mmassert(res->W <= pte2.W,*((uint64_t*)&satp),va,"W");
+            mmassert(res->X <= pte2.X,*((uint64_t*)&satp),va,"X");
+            mmassert(res->U <= pte2.U,*((uint64_t*)&satp),va,"U");
+            mmassert(res->G == pte2.G,*((uint64_t*)&satp),va,"G");
+            mmassert(res->A <= pte2.A,*((uint64_t*)&satp),va,"A");
+            mmassert(res->D <= pte2.D,*((uint64_t*)&satp),va,"D");
+#endif
             return res;
         }
         // slow path, ptw
@@ -119,21 +117,10 @@ private:
         for (int i=2;i>=0;i--) {
             bool res = bus.pa_read(pt_addr+((i==2?va->vpn_2:(i==1?va->vpn_1:va->vpn_0))*sizeof(sv39_pte)),sizeof(sv39_pte),(uint8_t*)&pte);
             if (!res) {
-                //printf("pt_addr=%lx, vpn=%lx\n",pt_addr,((i==2?va->vpn_2:(i==1?va->vpn_1:va->vpn_0))));
-                //printf("\nerror ptw pa=%lx, level=%d, satp=%lx\n",pt_addr+((i==2?va->vpn_2:(i==1?va->vpn_1:va->vpn_0))*sizeof(sv39_pte)),i,satp);
+                // invalid pte address
                 return false;
             }
             if (!pte.V || (!pte.R && pte.W) || pte.reserved || pte.PBMT) {
-                /*
-                printf("\nerror ptw. level = %d, vpn = %d, satp=%lx\n",i,((i==2?va->vpn_2:(i==1?va->vpn_1:va->vpn_0))),satp);
-                for (int j=0;j<(1<<9);j++) {
-                    uint64_t tmp_pte = 0;
-                    bus.pa_read(pt_addr+(j*8),sizeof(sv39_pte),(uint8_t*)&tmp_pte);
-                    if (tmp_pte != 0) {
-                        printf("but we found pte at vpn %d\n",j);
-                    }
-                }
-                */
                 return false;
             }
             if (pte.R || pte.X) { // leaf
@@ -142,7 +129,6 @@ private:
                 pte_out = pte;
                 pagesize = (1<<12) << (9*i);
                 uint64_t pa = (((((uint64_t)pte.PPN2 << 9) | (uint64_t)pte.PPN1) << 9) | (uint64_t)pte.PPN0) << 12;
-                //printf("ptw ok!\n");
                 return true;
             }
             else { // valid non-leaf
