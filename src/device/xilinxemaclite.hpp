@@ -62,7 +62,7 @@ public:
         memset(tx_ping_buffer, 0, sizeof(tx_ping_buffer));
         tx_ping_buffer_len = 0;
     }
-    bool do_read(uint64_t start_addr, uint64_t size, unsigned char* buffer) {
+    bool do_read(uint64_t start_addr, uint64_t size, char* buffer) {
         if (XEL_TXBUFF_OFFST <= start_addr && start_addr+size <= XEL_TXBUFF_OFFST + 2036) { // tx buffer
             memcpy(buffer, tx_ping_buffer+start_addr-XEL_TXBUFF_OFFST, size);
         }
@@ -99,7 +99,7 @@ public:
         else memset(buffer, 0x0, size);
         return true;
     }
-    bool do_write(uint64_t start_addr, uint64_t size, const unsigned char* buffer) {
+    bool do_write(uint64_t start_addr, uint64_t size, const char* buffer) {
         if (XEL_TXBUFF_OFFST <= start_addr && start_addr+size <= XEL_TXBUFF_OFFST+2036) { // tx buffer
             memcpy(tx_ping_buffer+start_addr-XEL_TXBUFF_OFFST, buffer, size);
         }

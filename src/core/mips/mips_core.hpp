@@ -98,7 +98,7 @@ private:
         else if (int_allow) cp0.check_and_raise_int();
         if (cp0.need_trap()) goto ctrl_trans_and_exception;
         while (pc_trace.size() > 16) pc_trace.pop();
-        if_exc = mmu.va_if(pc, (uint8_t*)&instr, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
+        if_exc = mmu.va_if(pc, (char*)&instr, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
         if (if_exc != EXC_OK) {
             cp0.raise_trap(if_exc, pc, tlb_invalid);
             goto ctrl_trans_and_exception;
@@ -691,7 +691,7 @@ private:
                 // LB
                 uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
                 int8_t buf;
-                mips32_exccode stat = mmu.va_read(vaddr, 1, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
+                mips32_exccode stat = mmu.va_read(vaddr, 1, (char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr, tlb_invalid);
                 else set_GPR(instr.i_type.rt, buf);
                 break;
@@ -700,7 +700,7 @@ private:
                 // LBU
                 uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
                 uint8_t buf;
-                mips32_exccode stat = mmu.va_read(vaddr, 1, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
+                mips32_exccode stat = mmu.va_read(vaddr, 1, (char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr, tlb_invalid);
                 else set_GPR(instr.i_type.rt, buf);
                 break;
@@ -709,7 +709,7 @@ private:
                 // LH
                 uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
                 int16_t buf;
-                mips32_exccode stat = mmu.va_read(vaddr, 2, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
+                mips32_exccode stat = mmu.va_read(vaddr, 2, (char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr, tlb_invalid);
                 else set_GPR(instr.i_type.rt, buf);
                 break;
@@ -718,7 +718,7 @@ private:
                 // LHU
                 uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
                 uint16_t buf;
-                mips32_exccode stat = mmu.va_read(vaddr, 2, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
+                mips32_exccode stat = mmu.va_read(vaddr, 2, (char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr, tlb_invalid);
                 else set_GPR(instr.i_type.rt, buf);
                 break;
@@ -728,7 +728,7 @@ private:
                 uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
                 uint32_t buf;
                 if (vaddr == 0xbfafe000u) debug_wb_is_timer = true; // for difftest
-                mips32_exccode stat = mmu.va_read(vaddr, 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
+                mips32_exccode stat = mmu.va_read(vaddr, 4, (char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr, tlb_invalid);
                 else set_GPR(instr.i_type.rt, buf);
                 break;
@@ -737,7 +737,7 @@ private:
                 // LWL
                 uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
                 uint32_t buf;
-                mips32_exccode stat = mmu.va_read(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
+                mips32_exccode stat = mmu.va_read(vaddr ^ (vaddr & 3), 4, (char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr, tlb_invalid);
                 else {
                     switch (vaddr % 4) {
@@ -764,7 +764,7 @@ private:
             case OPCODE_LWR: {
                 uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
                 uint32_t buf;
-                mips32_exccode stat = mmu.va_read(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
+                mips32_exccode stat = mmu.va_read(vaddr ^ (vaddr & 3), 4, (char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr, tlb_invalid);
                 else {
                     switch (vaddr % 4) {
@@ -791,21 +791,21 @@ private:
             case OPCODE_SB: {
                 // SB
                 uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
-                mips32_exccode stat = mmu.va_write(vaddr, 1, (unsigned char*)&GPR[instr.i_type.rt], cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
+                mips32_exccode stat = mmu.va_write(vaddr, 1, (char*)&GPR[instr.i_type.rt], cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr, tlb_invalid);
                 break;
             }
             case OPCODE_SH: {
                 // SH
                 uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
-                mips32_exccode stat = mmu.va_write(vaddr, 2, (unsigned char*)&GPR[instr.i_type.rt], cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
+                mips32_exccode stat = mmu.va_write(vaddr, 2, (char*)&GPR[instr.i_type.rt], cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr, tlb_invalid);
                 break;
             }
             case OPCODE_SW: {
                 // SW
                 uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
-                mips32_exccode stat = mmu.va_write(vaddr, 4, (unsigned char*)&GPR[instr.i_type.rt], cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
+                mips32_exccode stat = mmu.va_write(vaddr, 4, (char*)&GPR[instr.i_type.rt], cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr, tlb_invalid);
                 break;
             }
@@ -813,7 +813,7 @@ private:
                 // SWL
                 uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
                 uint32_t buf;
-                mips32_exccode stat = mmu.va_read(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
+                mips32_exccode stat = mmu.va_read(vaddr ^ (vaddr & 3), 4, (char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
                 if (stat != EXC_OK) {
                     if (stat == EXC_TLBL) stat = EXC_TLBS;
                     cp0.raise_trap(stat, vaddr, tlb_invalid);
@@ -835,7 +835,7 @@ private:
                         default:
                             assert(false);
                     }
-                    stat = mmu.va_write(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
+                    stat = mmu.va_write(vaddr ^ (vaddr & 3), 4, (char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
                     if (stat != EXC_OK) cp0.raise_trap(stat, vaddr, tlb_invalid);
                 }
                 break;
@@ -844,7 +844,7 @@ private:
                 // SWR
                 uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
                 uint32_t buf;
-                mips32_exccode stat = mmu.va_read(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
+                mips32_exccode stat = mmu.va_read(vaddr ^ (vaddr & 3), 4, (char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
                 if (stat != EXC_OK) {
                     if (stat == EXC_TLBL) stat = EXC_TLBS;
                     cp0.raise_trap(stat, vaddr, tlb_invalid);
@@ -866,7 +866,7 @@ private:
                         default:
                             assert(false);
                     }
-                    stat = mmu.va_write(vaddr ^ (vaddr & 3), 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
+                    stat = mmu.va_write(vaddr ^ (vaddr & 3), 4, (char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
                     if (stat != EXC_OK) cp0.raise_trap(stat, vaddr, tlb_invalid);
                 }
                 break;
@@ -936,7 +936,7 @@ private:
                 uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
                 uint32_t buf;
                 if (vaddr == 0xbfafe000u) debug_wb_is_timer = true; // for difftest
-                mips32_exccode stat = mmu.va_read(vaddr, 4, (unsigned char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
+                mips32_exccode stat = mmu.va_read(vaddr, 4, (char*)&buf, cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr, tlb_invalid);
                 else set_GPR(instr.i_type.rt, buf);
                 break;
@@ -944,7 +944,7 @@ private:
             case OPCODE_SC: {
                 // LL as SW but set GPR[rt] to 1
                 uint32_t vaddr = GPR[instr.i_type.rs] + instr.i_type.imm;
-                mips32_exccode stat = mmu.va_write(vaddr, 4, (unsigned char*)&GPR[instr.i_type.rt], cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
+                mips32_exccode stat = mmu.va_write(vaddr, 4, (char*)&GPR[instr.i_type.rt], cp0.get_ksu(), cp0.get_asid(), tlb_invalid);
                 if (stat != EXC_OK) cp0.raise_trap(stat, vaddr, tlb_invalid);
                 else set_GPR(instr.i_type.rt, 1);
                 break;

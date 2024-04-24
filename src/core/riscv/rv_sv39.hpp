@@ -115,7 +115,7 @@ private:
         uint64_t pt_addr = ((satp.ppn) << 12);
         sv39_pte pte;
         for (int i=2;i>=0;i--) {
-            bool res = bus.pa_read(pt_addr+((i==2?va->vpn_2:(i==1?va->vpn_1:va->vpn_0))*sizeof(sv39_pte)),sizeof(sv39_pte),(uint8_t*)&pte);
+            bool res = bus.pa_read(pt_addr+((i==2?va->vpn_2:(i==1?va->vpn_1:va->vpn_0))*sizeof(sv39_pte)),sizeof(sv39_pte),(char*)&pte);
             if (!res) {
                 // invalid pte address
                 return false;

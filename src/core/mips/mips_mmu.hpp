@@ -16,7 +16,7 @@ public:
     }
     // Only mask high 3 bit to translate from va to pa.
     // TODO: impl TLB and virtual address space segments
-    mips32_exccode va_if(uint32_t addr, uint8_t *buffer, mips32_ksu mode, uint8_t asid, bool &tlb_invalid) {
+    mips32_exccode va_if(uint32_t addr, char *buffer, mips32_ksu mode, uint8_t asid, bool &tlb_invalid) {
         tlb_invalid = false;
         if ((mode == USER_MODE && addr >= 0x80000000u) || addr % 4 != 0) return EXC_ADEL;
         else {
@@ -35,7 +35,7 @@ public:
         }
     }
     // size should be 1, 2, 4
-    mips32_exccode va_read(uint32_t addr, uint32_t size, uint8_t *buffer, mips32_ksu mode, uint8_t asid, bool &tlb_invalid) {
+    mips32_exccode va_read(uint32_t addr, uint32_t size, char *buffer, mips32_ksu mode, uint8_t asid, bool &tlb_invalid) {
         tlb_invalid = false;
         if ((mode == USER_MODE && addr >= 0x80000000u) || addr % size != 0) return EXC_ADEL;
         else {
@@ -53,7 +53,7 @@ public:
             }
         }
     }
-    mips32_exccode va_write(uint32_t addr, uint32_t size, const uint8_t *buffer, mips32_ksu mode, uint8_t asid, bool &tlb_invalid) {
+    mips32_exccode va_write(uint32_t addr, uint32_t size, const char *buffer, mips32_ksu mode, uint8_t asid, bool &tlb_invalid) {
         tlb_invalid = false;
         if ((mode == USER_MODE && addr >= 0x80000000u) || addr % size != 0) return EXC_ADES;
         else {

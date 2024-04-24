@@ -14,7 +14,7 @@ public:
             msip[i] = 0;
         }
     }
-    bool do_read(uint64_t start_addr, uint64_t size, unsigned char* buffer) {
+    bool do_read(uint64_t start_addr, uint64_t size, char* buffer) {
         if (start_addr >= 0x4000) {
             // mtimecmp, mtime
             if (start_addr >= 0xbff8 && start_addr + size <= 0xc000) {
@@ -38,7 +38,7 @@ public:
         }
         return true;
     }
-    bool do_write(uint64_t start_addr, uint64_t size, const unsigned char* buffer) {
+    bool do_write(uint64_t start_addr, uint64_t size, const char* buffer) {
         if (start_addr >= 0x4000) {
             // mtimecmp, mtime
             if (start_addr >= 0xbff8 && start_addr + size <= 0xc000) {

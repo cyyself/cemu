@@ -13,7 +13,7 @@
 // TODO: add pma and check pma
 class rv_systembus {
 public:
-    bool pa_read(uint64_t start_addr, uint64_t size, uint8_t *buffer) {
+    bool pa_read(uint64_t start_addr, uint64_t size, char *buffer) {
         auto it = devices.upper_bound(std::make_pair(start_addr,ULONG_MAX));
         if (it == devices.begin()) return false;
         it = std::prev(it);
@@ -24,7 +24,7 @@ public:
         }
         else return false;
     }
-    bool pa_write(uint64_t start_addr, uint64_t size, const uint8_t *buffer) {
+    bool pa_write(uint64_t start_addr, uint64_t size, const char *buffer) {
         if (start_addr <= lr_pa && lr_pa + size <= start_addr + size) {
             lr_valid = false;
         }
@@ -39,7 +39,7 @@ public:
         else return false;
     }
     // note: check address alignment in the core and raise address misalign exception
-    bool pa_lr(uint64_t pa, uint64_t size, uint8_t *dst, uint64_t hart_id) {
+    bool pa_lr(uint64_t pa, uint64_t size, char *dst, uint64_t hart_id) {
         lr_pa = pa;
         lr_size = size;
         lr_valid = true;
@@ -47,7 +47,7 @@ public:
         return pa_read(pa,size,dst);
     }
     // Note: if pa_write return false, sc_fail shouldn't commit.
-    bool pa_sc(uint64_t pa, uint64_t size, const uint8_t *src, uint64_t hart_id, bool &sc_fail) {
+    bool pa_sc(uint64_t pa, uint64_t size, const char *src, uint64_t hart_id, bool &sc_fail) {
         if (!lr_valid || lr_pa != pa || lr_size != size || lr_hart != hart_id) {
             sc_fail = true;
             if (hart_id == lr_hart) lr_valid = false;
@@ -63,11 +63,11 @@ public:
         bool read_ok = true;
         if (size == 4) {
             int32_t res32;
-            read_ok &= pa_read(pa,size,(uint8_t*)&res32);
+            read_ok &= pa_read(pa,size,(char*)&res32);
             res = res32;
         }
         else {
-            read_ok &= pa_read(pa,size,(uint8_t*)&res);
+            read_ok &= pa_read(pa,size,(char*)&res);
         }
         if (!read_ok) return false;
         int64_t to_write;
@@ -103,7 +103,7 @@ public:
                 assert(false);
         }
         dst = res;
-        return pa_write(pa,size,(uint8_t*)&to_write);
+        return pa_write(pa,size,(char*)&to_write);
     }
     bool add_dev(uint64_t start_addr, uint64_t length, mmio_dev *dev, bool raw_addr = false) {
         std::pair<uint64_t, uint64_t> addr_range = std::make_pair(start_addr,start_addr+length);

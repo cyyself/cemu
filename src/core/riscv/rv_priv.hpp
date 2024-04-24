@@ -345,7 +345,7 @@ public:
     }
     // Note: The core should raise exceptions when return value is not exc_custom_ok.
     // fetch instruction
-    rv_exc_code va_if(uint64_t start_addr, uint64_t size, uint8_t *buffer, uint64_t &bad_va) {
+    rv_exc_code va_if(uint64_t start_addr, uint64_t size, char *buffer, uint64_t &bad_va) {
         if (size == 4 && start_addr % 4 == 2) {
             rv_exc_code res0 = va_if(start_addr,2,buffer,bad_va);
             if (res0 != exc_custom_ok) return res0;
@@ -375,7 +375,7 @@ public:
         }
     }
 
-    rv_exc_code va_read(uint64_t start_addr, uint64_t size, uint8_t *buffer) {
+    rv_exc_code va_read(uint64_t start_addr, uint64_t size, char *buffer) {
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
         if ( (cur_priv == M_MODE && (!mstatus->mprv || mstatus->mpp == M_MODE)) || satp_reg->mode == 0) {
@@ -397,7 +397,7 @@ public:
         }
     }
 
-    rv_exc_code va_write(uint64_t start_addr, uint64_t size, const uint8_t *buffer) {
+    rv_exc_code va_write(uint64_t start_addr, uint64_t size, const char *buffer) {
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
         if ( (cur_priv == M_MODE && (!mstatus->mprv || mstatus->mpp == M_MODE)) || satp_reg->mode == 0) {
@@ -449,7 +449,7 @@ public:
         }
     }
     // note: core should check whether amoop and start_addr is valid
-    rv_exc_code va_lr(uint64_t start_addr, uint64_t size, uint8_t *buffer) {
+    rv_exc_code va_lr(uint64_t start_addr, uint64_t size, char *buffer) {
         assert(size == 4 || size == 8);
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;
@@ -472,7 +472,7 @@ public:
         }
     }
     // Note: if va_sc return != exc_custom_ok, sc_fail shouldn't commit.
-    rv_exc_code va_sc(uint64_t start_addr, uint64_t size, const uint8_t *buffer, bool &sc_fail) {
+    rv_exc_code va_sc(uint64_t start_addr, uint64_t size, const char *buffer, bool &sc_fail) {
         assert(size == 4 || size == 8);
         const satp_def *satp_reg = (satp_def *)&satp;
         const csr_mstatus_def *mstatus = (csr_mstatus_def*)&status;

@@ -30,7 +30,7 @@ public:
         memset(dmw, 0, sizeof(dmw));
     }
 
-    la32r_exccode va_if(uint32_t addr, uint8_t *buffer, la32r_plv cur_plv, bool map, uint32_t asid) {
+    la32r_exccode va_if(uint32_t addr, char *buffer, la32r_plv cur_plv, bool map, uint32_t asid) {
         if (addr % 4 != 0) {
             return std::make_pair(ADE, ADEF_SUBCODE);
         }
@@ -61,7 +61,7 @@ public:
         return std::make_pair(OK, 0);
     }
 
-    la32r_exccode va_read(uint32_t addr, uint32_t size, uint8_t *buffer, la32r_plv cur_plv, bool map, uint32_t asid) {
+    la32r_exccode va_read(uint32_t addr, uint32_t size, char *buffer, la32r_plv cur_plv, bool map, uint32_t asid) {
         if (addr % size != 0) {
             return std::make_pair(ALE, 0);
         }
@@ -92,7 +92,7 @@ public:
         return std::make_pair(OK, 0);
     }
 
-    la32r_exccode va_write(uint32_t addr, uint32_t size, uint8_t *buffer, la32r_plv cur_plv, bool map, uint32_t asid) {
+    la32r_exccode va_write(uint32_t addr, uint32_t size, char *buffer, la32r_plv cur_plv, bool map, uint32_t asid) {
         if (addr % size != 0) {
             return std::make_pair(ALE, 0);
         }

@@ -68,7 +68,7 @@ private:
             priv.raise_trap(csr_cause_def(exc_instr_misalign),pc);
             goto exception;
         }
-        if_exc = priv.va_if(pc,4,(uint8_t*)&cur_instr,pc_bad_va);
+        if_exc = priv.va_if(pc,4,(char*)&cur_instr,pc_bad_va);
         if (if_exc != exc_custom_ok) {
             priv.raise_trap(csr_cause_def(if_exc),pc_bad_va);
             goto exception;
@@ -159,43 +159,43 @@ private:
                 switch (inst->i_type.funct3) {
                     case FUNCT3_LB: {
                         int8_t buf;
-                        bool ok = mem_read(mem_addr,1,(unsigned char*)&buf);
+                        bool ok = mem_read(mem_addr,1,(char*)&buf);
                         if (ok) set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LH: {
                         int16_t buf;
-                        bool ok = mem_read(mem_addr,2,(unsigned char*)&buf);
+                        bool ok = mem_read(mem_addr,2,(char*)&buf);
                         if (ok) set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LW: {
                         int32_t buf;
-                        bool ok = mem_read(mem_addr,4,(unsigned char*)&buf);
+                        bool ok = mem_read(mem_addr,4,(char*)&buf);
                         if (ok) set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LD: {
                         int64_t buf;
-                        bool ok = mem_read(mem_addr,8,(unsigned char*)&buf);
+                        bool ok = mem_read(mem_addr,8,(char*)&buf);
                         if (ok) set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LBU: {
                         uint8_t buf;
-                        bool ok = mem_read(mem_addr,1,(unsigned char*)&buf);
+                        bool ok = mem_read(mem_addr,1,(char*)&buf);
                         if (ok) set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LHU: {
                         uint16_t buf;
-                        bool ok = mem_read(mem_addr,2,(unsigned char*)&buf);
+                        bool ok = mem_read(mem_addr,2,(char*)&buf);
                         if (ok) set_GPR(inst->i_type.rd,buf);
                         break;
                     }
                     case FUNCT3_LWU: {
                         uint32_t buf;
-                        bool ok = mem_read(mem_addr,4,(unsigned char*)&buf);
+                        bool ok = mem_read(mem_addr,4,(char*)&buf);
                         if (ok) set_GPR(inst->i_type.rd,buf);
                         break;
                     }
@@ -208,19 +208,19 @@ private:
                 uint64_t mem_addr = GPR[inst->s_type.rs1] + ( (inst->s_type.imm_11_5 << 5) | (inst->s_type.imm_4_0));
                 switch (inst->i_type.funct3) {
                     case FUNCT3_SB: {
-                        mem_write(mem_addr,1,(unsigned char*)&GPR[inst->s_type.rs2]);
+                        mem_write(mem_addr,1,(char*)&GPR[inst->s_type.rs2]);
                         break;
                     }
                     case FUNCT3_SH: {
-                        mem_write(mem_addr,2,(unsigned char*)&GPR[inst->s_type.rs2]);
+                        mem_write(mem_addr,2,(char*)&GPR[inst->s_type.rs2]);
                         break;
                     }
                     case FUNCT3_SW: {
-                        mem_write(mem_addr,4,(unsigned char*)&GPR[inst->s_type.rs2]);
+                        mem_write(mem_addr,4,(char*)&GPR[inst->s_type.rs2]);
                         break;
                     }
                     case FUNCT3_SD: {
-                        mem_write(mem_addr,8,(unsigned char*)&GPR[inst->s_type.rs2]);
+                        mem_write(mem_addr,8,(char*)&GPR[inst->s_type.rs2]);
                         break;
                     }
                     default:
@@ -458,13 +458,13 @@ private:
                         else {
                             if (inst->r_type.funct3 == 0b011) {
                                 int64_t result;
-                                rv_exc_code exc = priv.va_lr(GPR[inst->r_type.rs1],(1<<inst->r_type.funct3),(uint8_t*)&result);
+                                rv_exc_code exc = priv.va_lr(GPR[inst->r_type.rs1],(1<<inst->r_type.funct3),(char*)&result);
                                 if (exc == exc_custom_ok) set_GPR(inst->r_type.rd,result);
                                 else priv.raise_trap(csr_cause_def(exc),GPR[inst->r_type.rs1]);
                             }
                             else {
                                 int32_t result;
-                                rv_exc_code exc = priv.va_lr(GPR[inst->r_type.rs1],(1<<inst->r_type.funct3),(uint8_t*)&result);
+                                rv_exc_code exc = priv.va_lr(GPR[inst->r_type.rs1],(1<<inst->r_type.funct3),(char*)&result);
                                 if (exc == exc_custom_ok) set_GPR(inst->r_type.rd,result);
                                 else priv.raise_trap(csr_cause_def(exc),GPR[inst->r_type.rs1]);
                             }
@@ -473,7 +473,7 @@ private:
                     }
                     case AMOSC: {
                         bool result;
-                        rv_exc_code exc = priv.va_sc(GPR[inst->r_type.rs1],(1<<inst->r_type.funct3),(uint8_t*)&GPR[inst->r_type.rs2],result);
+                        rv_exc_code exc = priv.va_sc(GPR[inst->r_type.rs1],(1<<inst->r_type.funct3),(char*)&GPR[inst->r_type.rs2],result);
                         if (exc == exc_custom_ok) set_GPR(inst->r_type.rd,result);
                         else priv.raise_trap(csr_cause_def(exc),GPR[inst->r_type.rs1]);
                         break;
@@ -642,7 +642,7 @@ private:
                     uint64_t mem_addr = GPR[rs1] + imm;
                     uint8_t rd = 8 + binary_concat(cur_instr,4,2,0);
                     int32_t buf;
-                    bool ok = mem_read(mem_addr,4,(unsigned char*)&buf);
+                    bool ok = mem_read(mem_addr,4,(char*)&buf);
                     if (ok) set_GPR(rd,buf);
                     break;
                 }
@@ -652,7 +652,7 @@ private:
                     uint64_t mem_addr = GPR[rs1] + imm;
                     uint8_t rd = 8 + binary_concat(cur_instr,4,2,0);
                     int64_t buf;
-                    bool ok = mem_read(mem_addr,8,(unsigned char*)&buf);
+                    bool ok = mem_read(mem_addr,8,(char*)&buf);
                     if (ok) set_GPR(rd,buf);
                     break;
                 }
@@ -661,7 +661,7 @@ private:
                     uint8_t rs1 = 8 + binary_concat(cur_instr,9,7,0);
                     uint64_t mem_addr = GPR[rs1] + imm;
                     uint8_t rs2 = 8 + binary_concat(cur_instr,4,2,0);
-                    mem_write(mem_addr,4,(unsigned char*)&GPR[rs2]);
+                    mem_write(mem_addr,4,(char*)&GPR[rs2]);
                     break;
                 }
                 case OPCODE_C_SD: {
@@ -669,7 +669,7 @@ private:
                     uint8_t rs1 = 8 + binary_concat(cur_instr,9,7,0);
                     uint64_t mem_addr = GPR[rs1] + imm;
                     uint8_t rs2 = 8 + binary_concat(cur_instr,4,2,0);
-                    mem_write(mem_addr,8,(unsigned char*)&GPR[rs2]);
+                    mem_write(mem_addr,8,(char*)&GPR[rs2]);
                     break;
                 }
                 case OPCODE_C_ADDI: {
@@ -798,7 +798,7 @@ private:
                     uint64_t mem_addr = GPR[2] + imm;
                     uint8_t rd = binary_concat(cur_instr,11,7,0);
                     int32_t buf;
-                    bool ok = mem_read(mem_addr,4,(unsigned char*)&buf);
+                    bool ok = mem_read(mem_addr,4,(char*)&buf);
                     if (ok) set_GPR(rd,buf);
                     // TODO: rd != 0
                     break;
@@ -808,7 +808,7 @@ private:
                     uint64_t mem_addr = GPR[2] + imm;
                     uint8_t rd = binary_concat(cur_instr,11,7,0);
                     int64_t buf;
-                    bool ok = mem_read(mem_addr,8,(unsigned char*)&buf);
+                    bool ok = mem_read(mem_addr,8,(char*)&buf);
                     if (ok) set_GPR(rd,buf);
                     // TODO: rd != 0
                     break;
@@ -861,14 +861,14 @@ private:
                     uint64_t imm = (binary_concat(cur_instr,12,9,2) | binary_concat(cur_instr,8,7,6));
                     uint64_t mem_addr = GPR[2] + imm;
                     uint8_t rs2 = binary_concat(cur_instr,6,2,0);
-                    mem_write(mem_addr,4,(unsigned char*)&GPR[rs2]);
+                    mem_write(mem_addr,4,(char*)&GPR[rs2]);
                     break;
                 }
                 case OPCODE_C_SDSP: {
                     uint64_t imm = (binary_concat(cur_instr,12,10,3) | binary_concat(cur_instr,9,7,6));
                     uint64_t mem_addr = GPR[2] + imm;
                     uint8_t rs2 = binary_concat(cur_instr,6,2,0);
-                    mem_write(mem_addr,8,(unsigned char*)&GPR[rs2]);
+                    mem_write(mem_addr,8,(char*)&GPR[rs2]);
                     break;
                 }
                 default:
@@ -885,7 +885,7 @@ private:
         else if (!new_pc) pc = pc + (is_rvc ? 2 : 4);
         priv.post_exec();
     }
-    bool mem_read(uint64_t start_addr, uint64_t size, uint8_t *buffer) {
+    bool mem_read(uint64_t start_addr, uint64_t size, char *buffer) {
         if (start_addr % size != 0) {
             priv.raise_trap(csr_cause_def(exc_load_misalign),start_addr);
             return false;
@@ -900,7 +900,7 @@ private:
             return false;
         }
     }
-    bool mem_write(uint64_t start_addr, uint64_t size, const uint8_t *buffer) {
+    bool mem_write(uint64_t start_addr, uint64_t size, const char *buffer) {
         if (start_addr % size != 0) {
             priv.raise_trap(csr_cause_def(exc_store_misalign),start_addr);
             return false;

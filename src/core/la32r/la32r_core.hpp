@@ -71,7 +71,7 @@ private:
             return;
         }
         if_exc = mmu.va_if(pc,
-                           (uint8_t * ) & instr,
+                           (char * ) & instr,
                            csr.get_cur_plv(),
                            csr.get_crmd_pg(),
                            csr.get_asid());
@@ -162,7 +162,7 @@ private:
                 case LL_W: {
                     uint32_t temp;
                     uint32_t va = GPR[instr._2ri14.rj] + (instr._2ri14.i14 << 2);
-                    la32r_exccode exc = mmu.va_read(va, 4, (uint8_t * ) & temp,
+                    la32r_exccode exc = mmu.va_read(va, 4, (char * ) & temp,
                                                     csr.get_cur_plv(),
                                                     csr.get_crmd_pg(),
                                                     csr.get_asid());
@@ -177,7 +177,7 @@ private:
                 case SC_W: {
                     uint32_t va = GPR[instr._2ri14.rj] + (instr._2ri14.i14 << 2);
                     if (csr.get_llbit()) {
-                        la32r_exccode exc = mmu.va_write(va, 4, (uint8_t * ) & GPR[instr._2ri14.rd],
+                        la32r_exccode exc = mmu.va_write(va, 4, (char * ) & GPR[instr._2ri14.rd],
                                                          csr.get_cur_plv(),
                                                          csr.get_crmd_pg(),
                                                          csr.get_asid());
@@ -231,7 +231,7 @@ private:
                     case LD_B: {
                         uint32_t va = GPR[instr._2ri12.rj] + instr._2ri12.i12;
                         int8_t temp;
-                        la32r_exccode exc = mmu.va_read(va, 1, (uint8_t * ) & temp,
+                        la32r_exccode exc = mmu.va_read(va, 1, (char * ) & temp,
                                                         csr.get_cur_plv(),
                                                         csr.get_crmd_pg(),
                                                         csr.get_asid());
@@ -245,7 +245,7 @@ private:
                     case LD_H: {
                         uint32_t va = GPR[instr._2ri12.rj] + instr._2ri12.i12;
                         int16_t temp;
-                        la32r_exccode exc = mmu.va_read(va, 2, (uint8_t * ) & temp,
+                        la32r_exccode exc = mmu.va_read(va, 2, (char * ) & temp,
                                                         csr.get_cur_plv(),
                                                         csr.get_crmd_pg(),
                                                         csr.get_asid());
@@ -259,7 +259,7 @@ private:
                     case LD_W: {
                         uint32_t va = GPR[instr._2ri12.rj] + instr._2ri12.i12;
                         int32_t temp;
-                        la32r_exccode exc = mmu.va_read(va, 4, (uint8_t * ) & temp,
+                        la32r_exccode exc = mmu.va_read(va, 4, (char * ) & temp,
                                                         csr.get_cur_plv(),
                                                         csr.get_crmd_pg(),
                                                         csr.get_asid());
@@ -272,7 +272,7 @@ private:
                     }
                     case ST_B: {
                         uint32_t va = GPR[instr._2ri12.rj] + instr._2ri12.i12;
-                        la32r_exccode exc = mmu.va_write(va, 1, (uint8_t * ) & GPR[instr._2ri12.rd],
+                        la32r_exccode exc = mmu.va_write(va, 1, (char * ) & GPR[instr._2ri12.rd],
                                                          csr.get_cur_plv(),
                                                          csr.get_crmd_pg(),
                                                          csr.get_asid());
@@ -283,7 +283,7 @@ private:
                     }
                     case ST_H: {
                         uint32_t va = GPR[instr._2ri12.rj] + instr._2ri12.i12;
-                        la32r_exccode exc = mmu.va_write(va, 2, (uint8_t * ) & GPR[instr._2ri12.rd],
+                        la32r_exccode exc = mmu.va_write(va, 2, (char * ) & GPR[instr._2ri12.rd],
                                                          csr.get_cur_plv(),
                                                          csr.get_crmd_pg(),
                                                          csr.get_asid());
@@ -294,7 +294,7 @@ private:
                     }
                     case ST_W: {
                         uint32_t va = GPR[instr._2ri12.rj] + instr._2ri12.i12;
-                        la32r_exccode exc = mmu.va_write(va, 4, (uint8_t * ) & GPR[instr._2ri12.rd],
+                        la32r_exccode exc = mmu.va_write(va, 4, (char * ) & GPR[instr._2ri12.rd],
                                                          csr.get_cur_plv(),
                                                          csr.get_crmd_pg(),
                                                          csr.get_asid());
@@ -306,7 +306,7 @@ private:
                     case LD_BU: {
                         uint32_t va = GPR[instr._2ri12.rj] + instr._2ri12.i12;
                         uint8_t temp;
-                        la32r_exccode exc = mmu.va_read(va, 1, (uint8_t * ) & temp,
+                        la32r_exccode exc = mmu.va_read(va, 1, (char * ) & temp,
                                                         csr.get_cur_plv(),
                                                         csr.get_crmd_pg(),
                                                         csr.get_asid());
@@ -320,7 +320,7 @@ private:
                     case LD_HU: {
                         uint32_t va = GPR[instr._2ri12.rj] + instr._2ri12.i12;
                         uint16_t temp;
-                        la32r_exccode exc = mmu.va_read(va, 2, (uint8_t * ) & temp,
+                        la32r_exccode exc = mmu.va_read(va, 2, (char * ) & temp,
                                                         csr.get_cur_plv(),
                                                         csr.get_crmd_pg(),
                                                         csr.get_asid());

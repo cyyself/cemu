@@ -11,10 +11,10 @@
 class ram: public mmio_dev {
 public:
     ram(uint64_t size_bytes) {
-        mem = new unsigned char[size_bytes];
+        mem = new char[size_bytes];
         mem_size = size_bytes;
     }
-    ram(uint64_t size_bytes, const unsigned char *init_binary, uint64_t init_binary_len):ram(size_bytes) {
+    ram(uint64_t size_bytes, const char *init_binary, uint64_t init_binary_len):ram(size_bytes) {
         assert(init_binary_len <= size_bytes);
         memcpy(mem,init_binary,init_binary_len);
     }
@@ -50,7 +50,7 @@ public:
             }
         }
     }
-    bool do_read (uint64_t start_addr, uint64_t size, unsigned char* buffer) {
+    bool do_read (uint64_t start_addr, uint64_t size, char* buffer) {
         if (start_addr + size <= mem_size) {
             memcpy(buffer,&mem[start_addr],size);
             return true;
@@ -65,7 +65,7 @@ public:
         }
         else return false;
     }
-    bool do_write(uint64_t start_addr, uint64_t size, const unsigned char* buffer) {
+    bool do_write(uint64_t start_addr, uint64_t size, const char* buffer) {
         if (start_addr + size <= mem_size) {
             memcpy(&mem[start_addr],buffer,size);
             return true;
@@ -85,7 +85,7 @@ public:
     }
 private:
     bool allow_warp = false;
-    unsigned char *mem;
+    char *mem;
     uint64_t mem_size;
 };
 

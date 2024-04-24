@@ -11,10 +11,10 @@ public:
     rv_mtime(rv_clint<nr_hart> &clint):clint(clint) {
 
     }
-    bool do_read(uint64_t start_addr, uint64_t size, unsigned char* buffer) {
+    bool do_read(uint64_t start_addr, uint64_t size, char* buffer) {
         return clint.do_read(start_addr+0xbff8,size,buffer);
     }
-    bool do_write(uint64_t start_addr, uint64_t size, const unsigned char* buffer) {
+    bool do_write(uint64_t start_addr, uint64_t size, const char* buffer) {
         return clint.do_write(start_addr+0xbff8,size,buffer);
     }
 private:
@@ -27,10 +27,10 @@ public:
     rv_mtimecmp(rv_clint<nr_hart> &clint):clint(clint) {
 
     }
-    bool do_read(uint64_t start_addr, uint64_t size, unsigned char* buffer) {
+    bool do_read(uint64_t start_addr, uint64_t size, char* buffer) {
         return clint.do_read(start_addr+0x4000,size,buffer);
     }
-    bool do_write(uint64_t start_addr, uint64_t size, const unsigned char* buffer) {
+    bool do_write(uint64_t start_addr, uint64_t size, const char* buffer) {
         return clint.do_write(start_addr+0x4000,size,buffer);
     }
 private:
@@ -43,10 +43,10 @@ public:
     rv_mswi(rv_clint<nr_hart> &clint):clint(clint) {
 
     }
-    bool do_read(uint64_t start_addr, uint64_t size, unsigned char* buffer) {
+    bool do_read(uint64_t start_addr, uint64_t size, char* buffer) {
         return clint.do_read(start_addr,size,buffer);
     }
-    bool do_write(uint64_t start_addr, uint64_t size, const unsigned char* buffer) {
+    bool do_write(uint64_t start_addr, uint64_t size, const char* buffer) {
         return clint.do_write(start_addr,size,buffer);
     }
 private:
